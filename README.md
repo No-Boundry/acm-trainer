@@ -1,6 +1,12 @@
 # ACM-Trainer（ACM 训练助手）
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.10.0**。
+[![version](https://img.shields.io/badge/version-1.10.1-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-375%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-59%2F59-brightgreen)](docs/04-测试规范.md)
+[![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
+
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.10.1**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,585 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
