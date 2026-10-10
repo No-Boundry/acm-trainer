@@ -1,0 +1,33 @@
+# 依赖与构建产物
+node_modules/
+out/
+dist/
+*.log
+
+# 自动化验收产物（GUI 验收 / 冒烟 / 力扣同步 / 配图 / 调试：含截图与临时数据库，可达数百 MB）
+.gui-verify/
+.gui-smoke/
+.gui-lc/
+.gui-docs/
+.gui-debug/
+.gui-rating-debug/
+
+# 临时脚本与本地数据
+.tmp-*
+asar-check.txt
+*.tsbuildinfo
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+
+# 编辑器 / 系统
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp

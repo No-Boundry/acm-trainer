@@ -1,0 +1,4 @@
+C:\Workspace\acm-trainer\lib\memlimit.c: In function 'int wmain(int, wchar_t**)':
+C:\Workspace\acm-trainer\lib\memlimit.c:91:32: error: 'JOBOBJECT_BASIC_ACCOUNTING_INFORMATION' has no member named 'PeakJobProcessUsedMemory'
+   91 |     peakBytes = jbai.BasicInfo.PeakJobProcessUsedMemory;
+      |                                ^~~~~~~~~~~~~~~~~~~~~~~~

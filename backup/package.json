@@ -1,0 +1,13 @@
+{
+  "name": "acm-trainer",
+  "version": "0.1.0",
+  "description": "ACM 训练模式:本地题库 + g++ 在线判题 + XCPC 训练计划 + 进度统计 + AI 教练",
+  "main": "server.js",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

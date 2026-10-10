@@ -1,0 +1,33 @@
+# electron-builder 打包配置（A13，可选交付物）
+appId: com.acmtrainer.app
+productName: ACM-Trainer
+copyright: Copyright © 2026
+directories:
+  output: dist
+  buildResources: build
+files:
+  - out/**/*
+  - package.json
+  - "!**/*.map"
+asar: true
+compression: normal
+
+# better-sqlite3 v13 为 Node-API 预编译（NAPI v10），Electron 33 直接可用，无需 node-gyp 重编译
+npmRebuild: false
+buildDependenciesFromSource: false
+
+win:
+  target:
+    - nsis
+  artifactName: ${productName}-${version}-setup.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  createDesktopShortcut: true
+  shortcutName: ACM-Trainer
+
+electronLanguages:
+  - zh-CN
+  - en-US

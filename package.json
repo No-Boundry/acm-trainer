@@ -1,0 +1,56 @@
+{
+  "name": "acm-trainer",
+  "version": "1.10.1",
+  "description": "ACM 训练助手 - 个人 ACM/ICPC 学习与训练桌面应用",
+  "main": "./out/main/index.js",
+  "author": "ACM-Trainer Developer",
+  "private": true,
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "preview": "electron-vite preview",
+    "build:win": "electron-vite build && electron-builder --win",
+    "test": "vitest run",
+    "typecheck:node": "tsc --noEmit -p tsconfig.node.json",
+    "typecheck:web": "vue-tsc --noEmit -p tsconfig.web.json",
+    "typecheck": "npm run typecheck:node && npm run typecheck:web",
+    "verify:gui": "node tools/gui-verify.cjs",
+    "verify:smoke": "node tools/gui-smoke.cjs",
+    "verify:lc": "node tools/gui-lc-sync.cjs",
+    "docs:shots": "node tools/gui-docs-shots.cjs",
+    "docs:stl": "node tools/gen-stl-doc.cjs"
+  },
+  "dependencies": {
+    "better-sqlite3": "^13.0.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/markdown-it": "^14.2.0",
+    "@types/node": "^22.10.2",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/test-utils": "^2.5.0",
+    "axios": "^1.7.9",
+    "echarts": "^5.5.1",
+    "electron": "^37.10.3",
+    "electron-builder": "^26.15.3",
+    "electron-vite": "^2.3.0",
+    "highlight.js": "^11.10.0",
+    "jsdom": "^26.1.0",
+    "markdown-it": "^14.1.0",
+    "pinia": "^2.3.0",
+    "playwright-core": "^1.63.0",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.8",
+    "vue": "^3.5.13",
+    "vue-router": "^4.5.0",
+    "vue-tsc": "^2.1.10"
+  },
+  "allowScripts": {
+    "esbuild@0.21.5": true,
+    "vue-demi@0.14.10": true,
+    "better-sqlite3@13.0.3": true,
+    "electron-winstaller@5.4.0": true,
+    "electron@37.10.3": true
+  }
+}

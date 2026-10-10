@@ -1,0 +1,863 @@
+{
+ "source": "leetcode.cn POST /graphql problemsetQuestionList(categorySlug:\"algorithms\") → topicTags.nameTranslated",
+ "fetchedAt": "2026-10-03 05:00:26",
+ "totalQuestions": 3930,
+ "tagCount": 171,
+ "tags": [
+  {
+   "name": "数组",
+   "count": 2390,
+   "slug": "array"
+  },
+  {
+   "name": "字符串",
+   "count": 938,
+   "slug": "string"
+  },
+  {
+   "name": "哈希表",
+   "count": 879,
+   "slug": "hash-table"
+  },
+  {
+   "name": "数学",
+   "count": 749,
+   "slug": "math"
+  },
+  {
+   "name": "动态规划",
+   "count": 742,
+   "slug": "dynamic-programming"
+  },
+  {
+   "name": "排序",
+   "count": 558,
+   "slug": "sorting"
+  },
+  {
+   "name": "贪心",
+   "count": 488,
+   "slug": "greedy"
+  },
+  {
+   "name": "深度优先搜索",
+   "count": 394,
+   "slug": "depth-first-search"
+  },
+  {
+   "name": "二分查找",
+   "count": 372,
+   "slug": "binary-search"
+  },
+  {
+   "name": "位运算",
+   "count": 313,
+   "slug": "bit-manipulation"
+  },
+  {
+   "name": "树",
+   "count": 308,
+   "slug": "tree"
+  },
+  {
+   "name": "矩阵",
+   "count": 305,
+   "slug": "matrix"
+  },
+  {
+   "name": "广度优先搜索",
+   "count": 297,
+   "slug": "breadth-first-search"
+  },
+  {
+   "name": "双指针",
+   "count": 282,
+   "slug": "two-pointers"
+  },
+  {
+   "name": "前缀和",
+   "count": 281,
+   "slug": "prefix-sum"
+  },
+  {
+   "name": "堆（优先队列）",
+   "count": 236,
+   "slug": "heap-priority-queue"
+  },
+  {
+   "name": "模拟",
+   "count": 225,
+   "slug": "simulation"
+  },
+  {
+   "name": "二叉树",
+   "count": 219,
+   "slug": "binary-tree"
+  },
+  {
+   "name": "计数",
+   "count": 215,
+   "slug": "counting"
+  },
+  {
+   "name": "图",
+   "count": 208,
+   "slug": "graph"
+  },
+  {
+   "name": "栈",
+   "count": 197,
+   "slug": "stack"
+  },
+  {
+   "name": "滑动窗口",
+   "count": 185,
+   "slug": "sliding-window"
+  },
+  {
+   "name": "枚举",
+   "count": 164,
+   "slug": "enumeration"
+  },
+  {
+   "name": "设计",
+   "count": 152,
+   "slug": "design"
+  },
+  {
+   "name": "回溯",
+   "count": 129,
+   "slug": "backtracking"
+  },
+  {
+   "name": "并查集",
+   "count": 107,
+   "slug": "union-find"
+  },
+  {
+   "name": "数论",
+   "count": 107,
+   "slug": "number-theory"
+  },
+  {
+   "name": "链表",
+   "count": 102,
+   "slug": "linked-list"
+  },
+  {
+   "name": "线段树",
+   "count": 93,
+   "slug": "segment-tree"
+  },
+  {
+   "name": "有序集合",
+   "count": 84,
+   "slug": "ordered-set"
+  },
+  {
+   "name": "分治",
+   "count": 81,
+   "slug": "divide-and-conquer"
+  },
+  {
+   "name": "单调栈",
+   "count": 79,
+   "slug": "monotonic-stack"
+  },
+  {
+   "name": "组合数学",
+   "count": 68,
+   "slug": "combinatorics"
+  },
+  {
+   "name": "字典树",
+   "count": 67,
+   "slug": "trie"
+  },
+  {
+   "name": "队列",
+   "count": 65,
+   "slug": "queue"
+  },
+  {
+   "name": "递归",
+   "count": 63,
+   "slug": "recursion"
+  },
+  {
+   "name": "位掩码",
+   "count": 60,
+   "slug": "bitmask"
+  },
+  {
+   "name": "树状数组",
+   "count": 56,
+   "slug": "binary-indexed-tree"
+  },
+  {
+   "name": "二叉搜索树",
+   "count": 53,
+   "slug": "binary-search-tree"
+  },
+  {
+   "name": "记忆化",
+   "count": 50,
+   "slug": "memoization"
+  },
+  {
+   "name": "几何",
+   "count": 50,
+   "slug": "geometry"
+  },
+  {
+   "name": "哈希函数",
+   "count": 47,
+   "slug": "hash-function"
+  },
+  {
+   "name": "拓扑排序",
+   "count": 46,
+   "slug": "topological-sort"
+  },
+  {
+   "name": "最短路",
+   "count": 46,
+   "slug": "shortest-path"
+  },
+  {
+   "name": "字符串匹配",
+   "count": 37,
+   "slug": "string-matching"
+  },
+  {
+   "name": "滚动哈希",
+   "count": 33,
+   "slug": "rolling-hash"
+  },
+  {
+   "name": "树形 DP",
+   "count": 31,
+   "slug": "dp-on-trees"
+  },
+  {
+   "name": "博弈",
+   "count": 30,
+   "slug": "game-theory"
+  },
+  {
+   "name": "数据流",
+   "count": 28,
+   "slug": "data-stream"
+  },
+  {
+   "name": "单调队列",
+   "count": 28,
+   "slug": "monotonic-queue"
+  },
+  {
+   "name": "最大公约数",
+   "count": 25,
+   "slug": "greatest-common-divisor"
+  },
+  {
+   "name": "交互",
+   "count": 25,
+   "slug": "interactive"
+  },
+  {
+   "name": "欧几里得算法",
+   "count": 24,
+   "slug": "euclidean-algorithm"
+  },
+  {
+   "name": "脑筋急转弯",
+   "count": 23,
+   "slug": "brainteaser"
+  },
+  {
+   "name": "归并排序",
+   "count": 20,
+   "slug": "merge-sort"
+  },
+  {
+   "name": "双向链表",
+   "count": 18,
+   "slug": "doubly-linked-list"
+  },
+  {
+   "name": "有向无环图",
+   "count": 17,
+   "slug": "directed-acyclic-graph"
+  },
+  {
+   "name": "背包问题",
+   "count": 17,
+   "slug": "knapsack-problem"
+  },
+  {
+   "name": "极小化极大",
+   "count": 16,
+   "slug": "minimax-algorithm"
+  },
+  {
+   "name": "Dijkstra 算法",
+   "count": 16,
+   "slug": "dijkstra"
+  },
+  {
+   "name": "括号序列",
+   "count": 15,
+   "slug": "bracket-sequences"
+  },
+  {
+   "name": "质因数分解",
+   "count": 14,
+   "slug": "prime-factorization"
+  },
+  {
+   "name": "随机化",
+   "count": 14,
+   "slug": "randomized"
+  },
+  {
+   "name": "Binary Lifting",
+   "count": 12,
+   "slug": "binary-lifting"
+  },
+  {
+   "name": "计数排序",
+   "count": 12,
+   "slug": "counting-sort"
+  },
+  {
+   "name": "最长上升子序列",
+   "count": 12,
+   "slug": "longest-increasing-subsequence"
+  },
+  {
+   "name": "零和博弈",
+   "count": 12,
+   "slug": "zero-sum-game"
+  },
+  {
+   "name": "扩展 KMP",
+   "count": 11,
+   "slug": "z-algorithm"
+  },
+  {
+   "name": "筛法",
+   "count": 11,
+   "slug": "sieve-theory"
+  },
+  {
+   "name": "快速选择",
+   "count": 11,
+   "slug": "quickselect"
+  },
+  {
+   "name": "最近公共祖先",
+   "count": 11,
+   "slug": "lowest-common-ancestor"
+  },
+  {
+   "name": "KMP 算法",
+   "count": 10,
+   "slug": "knuth-morris-pratt-algorithm"
+  },
+  {
+   "name": "迭代器",
+   "count": 10,
+   "slug": "iterator"
+  },
+  {
+   "name": "素性测试",
+   "count": 10,
+   "slug": "primality-test"
+  },
+  {
+   "name": "二分图",
+   "count": 10,
+   "slug": "bipartite-graph"
+  },
+  {
+   "name": "费马小定理",
+   "count": 10,
+   "slug": "fermats-little-theorem"
+  },
+  {
+   "name": "概率与统计",
+   "count": 9,
+   "slug": "probability-and-statistics"
+  },
+  {
+   "name": "后缀数组",
+   "count": 9,
+   "slug": "suffix-array"
+  },
+  {
+   "name": "桶排序",
+   "count": 8,
+   "slug": "bucket-sort"
+  },
+  {
+   "name": "扫描线",
+   "count": 8,
+   "slug": "sweep-line"
+  },
+  {
+   "name": "0-1 背包",
+   "count": 8,
+   "slug": "0-1-knapsack"
+  },
+  {
+   "name": "快速排序",
+   "count": 7,
+   "slug": "quicksort"
+  },
+  {
+   "name": "双向搜索",
+   "count": 7,
+   "slug": "bidirectional-search"
+  },
+  {
+   "name": "素数筛法",
+   "count": 7,
+   "slug": "prime-number-sieve"
+  },
+  {
+   "name": "多边形",
+   "count": 7,
+   "slug": "polygons"
+  },
+  {
+   "name": "最小公倍数",
+   "count": 7,
+   "slug": "least-common-multiple"
+  },
+  {
+   "name": "网络流",
+   "count": 7,
+   "slug": "flow-network"
+  },
+  {
+   "name": "Boyer–Moore 算法",
+   "count": 6,
+   "slug": "boyer-moore-string-search-algorithm"
+  },
+  {
+   "name": "Floyd 判圈算法",
+   "count": 6,
+   "slug": "floyds-cycle-finding-algorithm"
+  },
+  {
+   "name": "Sqrt Decomposition",
+   "count": 6,
+   "slug": "sqrt-decomposition"
+  },
+  {
+   "name": "树堆",
+   "count": 6,
+   "slug": "treap"
+  },
+  {
+   "name": "最长公共子序列",
+   "count": 6,
+   "slug": "longest-common-subsequence"
+  },
+  {
+   "name": "图的匹配",
+   "count": 6,
+   "slug": "matching-graph"
+  },
+  {
+   "name": "最小生成树",
+   "count": 6,
+   "slug": "minimum-spanning-tree"
+  },
+  {
+   "name": "抽屉原理",
+   "count": 5,
+   "slug": "pigeonhole-principle"
+  },
+  {
+   "name": "完全背包",
+   "count": 5,
+   "slug": "complete-knapsack"
+  },
+  {
+   "name": "无偏博弈",
+   "count": 5,
+   "slug": "impartial-game"
+  },
+  {
+   "name": "A* 搜索",
+   "count": 5,
+   "slug": "a-search"
+  },
+  {
+   "name": "Heuristic Search",
+   "count": 5,
+   "slug": "heuristic-search"
+  },
+  {
+   "name": "Cartesian Tree",
+   "count": 5,
+   "slug": "cartesian-tree"
+  },
+  {
+   "name": "图的着色",
+   "count": 5,
+   "slug": "graph-coloring"
+  },
+  {
+   "name": "Kosaraju 算法",
+   "count": 5,
+   "slug": "kosarajus-algorithm"
+  },
+  {
+   "name": "Tarjan 强连通分量算法",
+   "count": 5,
+   "slug": "tarjans-scc-algorithm"
+  },
+  {
+   "name": "SSP 算法",
+   "count": 5,
+   "slug": "successive-shortest-path-algorithm"
+  },
+  {
+   "name": "冒泡排序",
+   "count": 4,
+   "slug": "bubble-sort"
+  },
+  {
+   "name": "摩尔投票算法",
+   "count": 4,
+   "slug": "boyer-moore-majority-vote-algorithm"
+  },
+  {
+   "name": "Nim 游戏",
+   "count": 4,
+   "slug": "nim-game"
+  },
+  {
+   "name": "Sprague–Grundy",
+   "count": 4,
+   "slug": "sprague-grundy-theorem"
+  },
+  {
+   "name": "水塘抽样",
+   "count": 4,
+   "slug": "reservoir-sampling"
+  },
+  {
+   "name": "AC 自动机",
+   "count": 4,
+   "slug": "aho-corasick-algorithm"
+  },
+  {
+   "name": "中途相遇",
+   "count": 4,
+   "slug": "meet-in-the-middle"
+  },
+  {
+   "name": "匈牙利算法",
+   "count": 4,
+   "slug": "hungarian-algorithm"
+  },
+  {
+   "name": "Suffix Tree",
+   "count": 4,
+   "slug": "suffix-tree"
+  },
+  {
+   "name": "Suffix Automato",
+   "count": 4,
+   "slug": "suffix-automaton"
+  },
+  {
+   "name": "最小费用流",
+   "count": 4,
+   "slug": "minimum-cost-flow"
+  },
+  {
+   "name": "Manacher 算法",
+   "count": 3,
+   "slug": "manacher"
+  },
+  {
+   "name": "X 算法",
+   "count": 3,
+   "slug": "algorithm-x"
+  },
+  {
+   "name": "基数排序",
+   "count": 3,
+   "slug": "radix-sort"
+  },
+  {
+   "name": "线性代数",
+   "count": 3,
+   "slug": "linear-algebra"
+  },
+  {
+   "name": "欧拉路径",
+   "count": 3,
+   "slug": "eulerian-path"
+  },
+  {
+   "name": "欧拉回路",
+   "count": 3,
+   "slug": "eulerian-circuit"
+  },
+  {
+   "name": "容斥原理",
+   "count": 3,
+   "slug": "inclusion-exclusion-principle"
+  },
+  {
+   "name": "Kruskal 算法",
+   "count": 3,
+   "slug": "kruskals-algorithm"
+  },
+  {
+   "name": "Prim 算法",
+   "count": 3,
+   "slug": "prims-algorithm"
+  },
+  {
+   "name": "Boruvka 算法",
+   "count": 3,
+   "slug": "boruvkas-algorithm"
+  },
+  {
+   "name": "Edmonds–Karp 算法",
+   "count": 3,
+   "slug": "edmonds-karp-algorithm"
+  },
+  {
+   "name": "Dinic 算法",
+   "count": 3,
+   "slug": "dinics-algorithm"
+  },
+  {
+   "name": "MPM 算法",
+   "count": 3,
+   "slug": "mpm-algorithm"
+  },
+  {
+   "name": "Push-Relabel 算法",
+   "count": 3,
+   "slug": "push-relabel-algorithm"
+  },
+  {
+   "name": "区间最值查询",
+   "count": 2,
+   "slug": "range-minimum-maximum-query"
+  },
+  {
+   "name": "Brute-Force Search",
+   "count": 2,
+   "slug": "brute-force-search"
+  },
+  {
+   "name": "半欧拉图",
+   "count": 2,
+   "slug": "semi-eulerian-graph"
+  },
+  {
+   "name": "扩展欧几里得算法",
+   "count": 2,
+   "slug": "extended-euclidean-algorithm"
+  },
+  {
+   "name": "裴蜀定理",
+   "count": 2,
+   "slug": "bezouts-lemma"
+  },
+  {
+   "name": "Floyd 算法",
+   "count": 2,
+   "slug": "floyd-warshall-algorithm"
+  },
+  {
+   "name": "Bellman–Ford 算法",
+   "count": 2,
+   "slug": "bellman-ford-algorithm"
+  },
+  {
+   "name": "拒绝采样",
+   "count": 2,
+   "slug": "rejection-sampling"
+  },
+  {
+   "name": "三分查找",
+   "count": 2,
+   "slug": "ternary-search"
+  },
+  {
+   "name": "哈密顿通路",
+   "count": 2,
+   "slug": "hamiltonian-path"
+  },
+  {
+   "name": "双连通分量",
+   "count": 2,
+   "slug": "biconnected-component"
+  },
+  {
+   "name": "最大流",
+   "count": 2,
+   "slug": "maximum-flow"
+  },
+  {
+   "name": "最大匹配",
+   "count": 2,
+   "slug": "maximum-matching"
+  },
+  {
+   "name": "0-1 BFS",
+   "count": 2,
+   "slug": "0-1-bfs"
+  },
+  {
+   "name": "完美匹配",
+   "count": 2,
+   "slug": "perfect-matching"
+  },
+  {
+   "name": "强连通分量",
+   "count": 2,
+   "slug": "strongly-connected-component"
+  },
+  {
+   "name": "混合背包",
+   "count": 2,
+   "slug": "mixed-knapsack"
+  },
+  {
+   "name": "多重背包",
+   "count": 2,
+   "slug": "multiple-knapsack"
+  },
+  {
+   "name": "锦标赛排序",
+   "count": 1,
+   "slug": "tournament-sort"
+  },
+  {
+   "name": "Dancing Links",
+   "count": 1,
+   "slug": "dancing-links"
+  },
+  {
+   "name": "牛顿迭代法",
+   "count": 1,
+   "slug": "newtons-method"
+  },
+  {
+   "name": "欧拉函数",
+   "count": 1,
+   "slug": "eulers-totient-function"
+  },
+  {
+   "name": "欧拉定理",
+   "count": 1,
+   "slug": "eulers-theorem"
+  },
+  {
+   "name": "凸包",
+   "count": 1,
+   "slug": "convex-hull"
+  },
+  {
+   "name": "欧拉图",
+   "count": 1,
+   "slug": "eulerian-graph"
+  },
+  {
+   "name": "Tim 排序",
+   "count": 1,
+   "slug": "timsort"
+  },
+  {
+   "name": "最小表示法",
+   "count": 1,
+   "slug": "lexicographically-minimal-string-rotation"
+  },
+  {
+   "name": "平面图",
+   "count": 1,
+   "slug": "planar-graph"
+  },
+  {
+   "name": "K-D Tree",
+   "count": 1,
+   "slug": "k-d-tree"
+  },
+  {
+   "name": "三角剖分",
+   "count": 1,
+   "slug": "triangulation"
+  },
+  {
+   "name": "可持久化数据结构",
+   "count": 1,
+   "slug": "persistent-data-structure"
+  },
+  {
+   "name": "Lyndon 分解",
+   "count": 1,
+   "slug": "lyndon-factorization"
+  },
+  {
+   "name": "桥",
+   "count": 1,
+   "slug": "bridge-graph"
+  },
+  {
+   "name": "最小割",
+   "count": 1,
+   "slug": "minimum-cut"
+  },
+  {
+   "name": "Sparse Table",
+   "count": 1,
+   "slug": "sparse-table"
+  },
+  {
+   "name": "割点",
+   "count": 1,
+   "slug": "articulation-point"
+  },
+  {
+   "name": "Splay Tree",
+   "count": 1,
+   "slug": "splay-tree"
+  },
+  {
+   "name": "最小圆覆盖",
+   "count": 1,
+   "slug": "minimum-enclosing-circle"
+  },
+  {
+   "name": "Palindromic Tre",
+   "count": 1,
+   "slug": "palindromic-tree"
+  },
+  {
+   "name": "k 短路",
+   "count": 1,
+   "slug": "k-shortest-path"
+  },
+  {
+   "name": "Li Chao Tree",
+   "count": 1,
+   "slug": "li-chao-tree"
+  },
+  {
+   "name": "堆",
+   "count": 1,
+   "slug": "heap"
+  }
+ ]
+}

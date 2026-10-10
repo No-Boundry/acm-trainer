@@ -1,0 +1,54 @@
+/* ACM-Trainer 全局样式 —— 暗色主题（docs/03-详细设计 §7.3） */
+:root {
+  --bg: #1e1e2e;
+  --bg-side: #181825;
+  --surface: #27273a;
+  --border: #313244;
+  --text: #cdd6f4;
+  --text-dim: #a6adc8;
+  --text-faint: #6c7086;
+  --primary: #1e90ff;
+  --success: #3cb371;
+  --warning: #ffa500;
+  --danger: #ff6347;
+  --mono: Consolas, 'Courier New', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+}
+
+input,
+textarea,
+[contenteditable] {
+  user-select: text;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #45475a;
+  border-radius: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}

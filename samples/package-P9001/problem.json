@@ -1,0 +1,11 @@
+{
+  "id": "P9001",
+  "title": "样例题：两数之和（本地题包演示）",
+  "timeLimit": 1500,
+  "memoryLimit": 128,
+  "tags": [
+    "模拟",
+    "implementation"
+  ],
+  "source": "本地题包示例"
+}

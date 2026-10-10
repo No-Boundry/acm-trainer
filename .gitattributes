@@ -1,0 +1,16 @@
+# 统一换行符：源码/文档用 LF，Windows 脚本保留 CRLF，二进制不改
+* text=auto
+*.ts text eol=lf
+*.vue text eol=lf
+*.md text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.cjs text eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.png binary
+*.jpg binary
+*.ico binary
+*.exe binary
+*.zip binary
+*.sqlite binary
