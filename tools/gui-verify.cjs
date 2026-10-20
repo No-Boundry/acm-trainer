@@ -160,11 +160,11 @@ async function main() {
   await win.waitForTimeout(400)
   const chipCount = await win.locator('.kn-chip').count()
   check('知识点标签数 = 54（v1.10 新增国内比赛节点）', chipCount === 54, `实际 ${chipCount}`)
-  // v1.11.0：洛谷改版后 UID 在线导入不可用，题库页导入面板须明确引导改用粘贴
+  // v1.11.0：洛谷改版后在线导入改为「提交记录（只取 AC）」，题库页须说明这条路径
   const importPanelText = (await win.locator('.import-panel').innerText()).replace(/\s+/g, ' ')
   check(
-    '题库页提示「洛谷改版 → 请用粘贴导入」',
-    importPanelText.includes('改版') && importPanelText.includes('粘贴'),
+    '题库页说明「洛谷改用提交记录在线导入」',
+    importPanelText.includes('提交记录') && importPanelText.includes('在线导入'),
     importPanelText.slice(0, 160)
   )
   await win.screenshot({ path: path.join(OUT, '02-problems-knowledge.png') })
@@ -236,10 +236,10 @@ async function main() {
   await win.waitForTimeout(1200)
   const settingsText = (await win.locator('.settings-page').innerText()).replace(/\s+/g, ' ')
   check('设置页说明题面由 Edge 打开', settingsText.includes('Edge'), settingsText.slice(0, 160))
-  // v1.11.0：洛谷改版后 UID 在线导入不可用，设置页须给出粘贴导入的替代说明
+  // v1.11.0：洛谷改版后在线导入改为「提交记录（只取 AC）」，设置页须同步说明
   check(
-    '设置页提示「洛谷改版 → 改用粘贴导入」',
-    settingsText.includes('改版') && settingsText.includes('粘贴'),
+    '设置页说明「洛谷改用提交记录在线导入」',
+    settingsText.includes('提交记录'),
     settingsText.slice(0, 160)
   )
   await win.screenshot({ path: path.join(OUT, '05-settings.png') })

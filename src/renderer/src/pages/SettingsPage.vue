@@ -390,7 +390,7 @@ onMounted(() => {
       <p class="dim small">
         从洛谷「做题记录」在线导入需要登录态：点下方按钮打开登录窗口完成登录（登录态仅保存在本机，
         仅用于 UID 导入；未登录时仍可在题库页粘贴文本离线导入）。
-        <b class="warn">注意：洛谷已改版，用户页不再提供做题记录，UID 在线导入暂不可用，请改用题库页的「粘贴题号/内容」导入。</b>
+        <b class="ok-note">洛谷改版后，在线导入已改用「提交记录（只取 AC）」重建做题记录，登录后填 UID 点「在线导入」即可。</b>
       </p>
       <div class="actions">
         <button class="btn" :disabled="!loaded" @click="openLuoguLogin()">登录洛谷（UID 在线导入用）</button>
@@ -530,6 +530,10 @@ onMounted(() => {
 /* 洛谷改版提示（v1.11.0） */
 .panel p .warn {
   color: #e6a23c;
+  font-weight: 600;
+}
+.panel p .ok-note {
+  color: #3cb371;
   font-weight: 600;
 }
 </style>

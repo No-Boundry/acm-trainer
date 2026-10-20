@@ -5,6 +5,10 @@ import {
   importLuoguPractice,
   isLuoguChallengePage,
   isLentillePage,
+  pageHasUserData,
+  parseLuoguRecordsPage,
+  parseLuoguUserSummary,
+  LUOGU_STATUS_AC,
   scanPidsFromText,
   buildPracticeFromText,
   LUOGU_LOGIN_REQUIRED,
@@ -129,6 +133,61 @@ describe('parseLuoguUserPractice（FR-8.9 解析，三种形态）', () => {
   it('挑战页判定', () => {
     expect(isLuoguChallengePage('<title>Welcome - Luogu Spilopelia</title>')).toBe(true)
     expect(isLuoguChallengePage('{"currentData":{}}')).toBe(false)
+    // v1.11：真正的用户页也含 Spilopelia 字符串（Soft Wall），不能仅凭它判失败
+    expect(isLuoguChallengePage('<title>kkksc03 的个人中心 - 洛谷 | 计算机科学教育新生态</title>Spilopelia')).toBe(false)
+  })
+
+  it('pageHasUserData：区分「页面带登录用户」与「匿名数据」', () => {
+    expect(pageHasUserData('{"currentData":{"user":{"uid":1,"name":"a"}}}')).toBe(true)
+    expect(pageHasUserData('<script id="lentille-context">{"data":{"user":{"uid":9}},"user":null}</script>')).toBe(true)
+    expect(pageHasUserData('<script id="lentille-context">{"data":{"user":null},"user":null}</script>')).toBe(false)
+    expect(pageHasUserData('<title>kkksc03 的个人中心</title>')).toBe(false)
+  })
+
+  // ---------- v1.11.0：改用「提交记录（只取 AC）」重建做题记录 ----------
+  const recordsHtml = (recs: { pid: string; status: number }[], count: number): string =>
+    `<script id="lentille-context" type="application/json">${JSON.stringify({
+      template: 'record.list',
+      data: {
+        records: {
+          count,
+          perPage: 20,
+          result: recs.map((r, i) => ({ id: i + 1, status: r.status, problem: { pid: r.pid, type: 'P', name: 'x' } }))
+        }
+      }
+    })}</script>`
+
+  it('parseLuoguRecordsPage：只取 AC（status=12）的 P 题，去重保序', () => {
+    const page = parseLuoguRecordsPage(
+      recordsHtml(
+        [
+          { pid: 'P1049', status: 12 },
+          { pid: 'P1464', status: 12 },
+          { pid: 'P1049', status: 12 }, // 重复提交同一题
+          { pid: 'P1001', status: 7 }, // WA → 不导入
+          { pid: 'B2005', status: 12 } // 非 P 题 → 忽略
+        ],
+        60
+      )
+    )
+    expect(page.acPids).toEqual(['P1049', 'P1464'])
+    expect(page.total).toBe(60)
+    expect(page.records).toHaveLength(5)
+    expect(LUOGU_STATUS_AC).toBe(12)
+  })
+
+  it('parseLuoguRecordsPage：结构异常 → LUOGU_PARSE_FAILED', () => {
+    expect(() => parseLuoguRecordsPage('<html><body>no data</body></html>')).toThrow(AppError)
+  })
+
+  it('parseLuoguUserSummary：新版用户页只给计数', () => {
+    const html = `<script id="lentille-context" type="application/json">${JSON.stringify({
+      template: 'user.show',
+      data: { user: { uid: 1935012, name: 'B_I_G', passedProblemCount: 50, submittedProblemCount: 58 } }
+    })}</script>`
+    const s = parseLuoguUserSummary(html)
+    expect(s).toMatchObject({ uid: 1935012, name: 'B_I_G', passedProblemCount: 50, submittedProblemCount: 58 })
+    expect(parseLuoguUserSummary('<title>x</title>')).toBeNull()
   })
 
   // ---------- v1.11：洛谷前端改版（lentille-context）回归 ----------

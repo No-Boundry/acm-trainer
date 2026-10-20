@@ -673,9 +673,9 @@ onMounted(() => {
           <button class="btn primary" :disabled="importing" @click="doImport('paste')">粘贴导入</button>
         </div>
         <div class="dim small tip">
-          <b class="warn">🔔 洛谷已改版（2026）：用户页不再提供做题记录，UID「在线导入」暂时无法使用，请改用上面的「粘贴题号/内容」导入。</b>
+          <b class="ok-note">✅ 洛谷改版后已改用「提交记录（只取 AC）」在线导入：先在设置页「登录洛谷」完成登录，再填入 UID 点「在线导入」即可。</b>
           在线导入需要登录态：到「设置 → 洛谷账号（UID 导入用）」点「登录洛谷」打开登录窗口完成登录后重试（题面现在用 Edge 打开，登录态在应用内窗口）；且目标用户需在洛谷「个人设置-隐私」中公开练习情况。
-          导入的 AC 记录计入练习统计（可随时删除）。
+          也可以不登录，直接用「粘贴题号/内容」导入。导入的 AC 记录计入练习统计（可随时删除）。
         </div>
       </div>
 
@@ -1118,6 +1118,10 @@ onMounted(() => {
 }
 .import-panel .tip .warn {
   color: #e6a23c;
+  font-weight: 600;
+}
+.import-panel .tip .ok-note {
+  color: #3cb371;
   font-weight: 600;
 }
 .chip {

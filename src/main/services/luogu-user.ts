@@ -91,14 +91,97 @@ export const LUOGU_LOGIN_REQUIRED = 'LUOGU_LOGIN_REQUIRED'
 /** 洛谷改版后不再下发做题记录的错误码（引导用户改用文本导入） */
 export const LUOGU_PRACTICE_UNAVAILABLE = 'LUOGU_PRACTICE_UNAVAILABLE'
 
-/** 判定是否登录墙/验证页（洛谷匿名挑战页标题特征） */
+/**
+ * 判定是否登录墙/验证页。
+ * v1.11 起：洛谷对**匿名者**也会返回含 `Spilopelia` 的“Soft Wall”页面（标题仍显示用户信息），
+ * 因此不能只看标题标记；真正的验证页只认「Welcome - Luogu」标题或明确的验证/拦截标记。
+ */
 export function isLuoguChallengePage(html: string): boolean {
-  return html.includes('Welcome - Luogu') || html.includes('Spilopelia')
+  if (html.includes('Welcome - Luogu')) return true
+  // 明确的人机验证/拦截标记（登录后仍被拦截的场景）
+  return /captcha|verify-human|人机验证|访问过于频繁|请求过于频繁/i.test(html)
+}
+
+/** 页面内嵌数据里是否带登录态用户信息（currentData.user 或 lentille data.user） */
+export function pageHasUserData(html: string): boolean {
+  return /"user"\s*:\s*\{[^}]*"uid"\s*:\s*\d+/.test(html) || /"_user"\s*:\s*\{/.test(html)
 }
 
 /** 是否为新版 lentille 内嵌数据页（无论是否带做题记录） */
 export function isLentillePage(text: string): boolean {
   return /<script[^>]+id=["']lentille-context["']/.test(text)
+}
+
+/** 从页面中取出 lentille-context 的 JSON 对象（取不到返回 null） */
+function readLentilleContext(text: string): Record<string, unknown> | null {
+  const m = text.match(/<script[^>]*id=["']lentille-context["'][^>]*>([\s\S]*?)<\/script>/i)
+  if (!m) return null
+  try {
+    const obj = JSON.parse(m[1].trim()) as Record<string, unknown>
+    return obj && typeof obj === 'object' ? obj : null
+  } catch {
+    return null
+  }
+}
+
+/** 洛谷提交记录条目（record.list 接口） */
+interface LuoguRecordItem {
+  status?: number
+  problem?: { pid?: string; type?: string; name?: string } | null
+}
+
+/** 洛谷「通过」状态码 */
+export const LUOGU_STATUS_AC = 12
+
+/**
+ * 解析洛谷提交记录页（v1.11 起 UID 在线导入的**替代数据源**）。
+ * 用户页已移除 passedProblems，但提交记录页仍可用：
+ * `GET /record/list?page=N&uid=<uid>&status=12` → lentille `data.records = { count, perPage, result }`
+ * @returns 本页状态与 AC 题号（去重保序）
+ */
+export function parseLuoguRecordsPage(text: string): {
+  total: number
+  records: LuoguRecordItem[]
+  acPids: string[]
+  hasMore: boolean
+} {
+  const ctx = readLentilleContext(text)
+  const data = (ctx?.data ?? {}) as { records?: { count?: number; result?: LuoguRecordItem[] } }
+  const records = Array.isArray(data.records?.result) ? data.records!.result! : []
+  if (records.length === 0 && !data.records) {
+    throw new AppError('LUOGU_PARSE_FAILED', '洛谷提交记录页解析失败（页面结构可能已变化）')
+  }
+  const seen = new Set<string>()
+  const acPids: string[] = []
+  for (const r of records) {
+    // 只认 AC 且为 P 题（服务端已按 status=12 过滤，这里再兜一层）
+    if (typeof r.status === 'number' && r.status !== LUOGU_STATUS_AC) continue
+    const pid = r.problem?.pid
+    if (typeof pid === 'string' && pid.startsWith('P') && !seen.has(pid)) {
+      seen.add(pid)
+      acPids.push(pid)
+    }
+  }
+  const total = typeof data.records?.count === 'number' ? data.records.count : records.length
+  return { total, records, acPids, hasMore: records.length > 0 }
+}
+
+/** 用户页摘要（v1.11：只有计数，没有题目列表） */
+export function parseLuoguUserSummary(text: string): {
+  uid: number
+  name: string
+  passedProblemCount: number | null
+  submittedProblemCount: number | null
+} | null {
+  const ctx = readLentilleContext(text)
+  const user = (ctx?.data as { user?: Record<string, unknown> } | undefined)?.user
+  if (!user || typeof user.uid !== 'number') return null
+  return {
+    uid: user.uid,
+    name: typeof user.name === 'string' ? user.name : `用户 ${user.uid}`,
+    passedProblemCount: typeof user.passedProblemCount === 'number' ? user.passedProblemCount : null,
+    submittedProblemCount: typeof user.submittedProblemCount === 'number' ? user.submittedProblemCount : null
+  }
 }
 
 /** 把新版 lentille 结构归一成旧版 currentData 形态，便于后续统一处理 */
