@@ -1,6 +1,6 @@
 {
   "name": "acm-trainer",
-  "version": "1.11.0",
+  "version": "1.12.0",
   "description": "ACM 训练助手 - 个人 ACM/ICPC 学习与训练桌面应用",
   "main": "./out/main/index.js",
   "author": "ACM-Trainer Developer",

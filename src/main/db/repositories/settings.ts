@@ -39,5 +39,10 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   userName: '',
   avatarFile: '',
   ratingWeights: '{"practice":0.7,"contest":0.3}',
-  luoguDiffRatings: '{"1":900,"2":1100,"3":1300,"4":1500,"5":1750,"6":2050,"7":2300}'
+  luoguDiffRatings: '{"1":900,"2":1100,"3":1300,"4":1500,"5":1750,"6":2050,"7":2300}',
+  // v1.12 FR-30：启动时自动同步已绑定账号
+  autoSyncEnabled: 'true',
+  cfHandle: '',
+  luoguUid: '',
+  leetcodeUsername: ''
 }

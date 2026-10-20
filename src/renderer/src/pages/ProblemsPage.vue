@@ -236,6 +236,11 @@ async function onSync(source: ProblemSource): Promise<void> {
   }
 }
 
+/** v1.12：在线导入已迁移到设置页的「题库账号绑定」 */
+function gotoAccountBinding(): void {
+  void router.push({ path: '/settings', query: { section: 'account' } })
+}
+
 /** 洛谷 UID 做题记录导入（FR-8.9：在线抓取 / 粘贴 JSON） */
 async function doImport(mode: 'fetch' | 'paste'): Promise<void> {
   if (importing.value) return
@@ -652,30 +657,26 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- 洛谷 UID 导入（FR-8.9） -->
+      <!-- v1.12：在线导入（UID 抓取）已迁移到「设置 → 题库账号绑定」，这里只保留粘贴导入与入口 -->
       <div class="import-panel">
         <div class="import-head">
-          <span class="import-title">洛谷做题记录导入</span>
-          <input v-model="importUid" class="input w-120" placeholder="洛谷 UID" />
-          <button class="btn luogu" :disabled="importing" @click="doImport('fetch')">
-            {{ importing ? '导入中…' : '在线导入' }}
-          </button>
+          <span class="import-title">做题记录导入</span>
+          <button class="btn luogu" @click="gotoAccountBinding()">⚙️ 账号绑定与自动同步（设置页）</button>
           <button class="btn ghost" @click="pasteMode = !pasteMode">
-            {{ pasteMode ? '收起粘贴' : '粘贴题号/内容' }}
+            {{ pasteMode ? '收起粘贴' : '粘贴题号/内容导入' }}
           </button>
         </div>
         <div v-if="pasteMode" class="paste-area">
           <textarea
             v-model="importJson"
             class="paste-input"
-            placeholder="粘贴任意包含洛谷 P 题号的内容即可自动识别导入，例如：洛谷个人主页文字、题号列表、网页源码、user/UID 页面内容等"
+            placeholder="粘贴任意包含题号的内容即可自动识别导入，例如：洛谷个人主页文字、题号列表、网页源码（P1000 / 1741A / LC1 均可）"
           ></textarea>
           <button class="btn primary" :disabled="importing" @click="doImport('paste')">粘贴导入</button>
         </div>
         <div class="dim small tip">
-          <b class="ok-note">✅ 洛谷改版后已改用「提交记录（只取 AC）」在线导入：先在设置页「登录洛谷」完成登录，再填入 UID 点「在线导入」即可。</b>
-          在线导入需要登录态：到「设置 → 洛谷账号（UID 导入用）」点「登录洛谷」打开登录窗口完成登录后重试（题面现在用 Edge 打开，登录态在应用内窗口）；且目标用户需在洛谷「个人设置-隐私」中公开练习情况。
-          也可以不登录，直接用「粘贴题号/内容」导入。导入的 AC 记录计入练习统计（可随时删除）。
+          <b class="ok-note">✅ 已在「设置 → 题库账号绑定」绑定洛谷 UID / Codeforces handle 后，应用会在启动时自动抓取做题记录，无需在此手动导入。</b>
+          未绑定时仍可在此直接粘贴题号导入。导入的 AC 记录计入练习统计（可随时删除）。
         </div>
       </div>
 

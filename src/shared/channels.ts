@@ -48,6 +48,13 @@ export const IpcChannels = {
   PlansUnmarkBusy: 'plans:unmarkBusy',
   PlansReschedule: 'plans:reschedule',
 
+  // 账号绑定与自动同步（v1.12 FR-30）
+  AccountList: 'account:list',
+  AccountBind: 'account:bind',
+  AccountSync: 'account:sync',
+  AccountSyncAll: 'account:syncAll',
+  AccountAutoSync: 'account:autoSync',
+
   // 笔记
   NotesList: 'notes:list',
   NotesGet: 'notes:get',

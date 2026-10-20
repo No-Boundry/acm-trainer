@@ -160,11 +160,11 @@ async function main() {
   await win.waitForTimeout(400)
   const chipCount = await win.locator('.kn-chip').count()
   check('知识点标签数 = 54（v1.10 新增国内比赛节点）', chipCount === 54, `实际 ${chipCount}`)
-  // v1.11.0：洛谷改版后在线导入改为「提交记录（只取 AC）」，题库页须说明这条路径
+  // v1.12：在线导入已迁移到设置页「题库账号绑定」，题库页只保留粘贴导入与入口
   const importPanelText = (await win.locator('.import-panel').innerText()).replace(/\s+/g, ' ')
   check(
-    '题库页说明「洛谷改用提交记录在线导入」',
-    importPanelText.includes('提交记录') && importPanelText.includes('在线导入'),
+    '题库页保留粘贴导入入口，并指向设置页账号绑定',
+    importPanelText.includes('粘贴') && importPanelText.includes('账号绑定'),
     importPanelText.slice(0, 160)
   )
   await win.screenshot({ path: path.join(OUT, '02-problems-knowledge.png') })
@@ -236,12 +236,25 @@ async function main() {
   await win.waitForTimeout(1200)
   const settingsText = (await win.locator('.settings-page').innerText()).replace(/\s+/g, ' ')
   check('设置页说明题面由 Edge 打开', settingsText.includes('Edge'), settingsText.slice(0, 160))
-  // v1.11.0：洛谷改版后在线导入改为「提交记录（只取 AC）」，设置页须同步说明
+  // v1.12 FR-30：设置页「题库账号绑定」面板
+  const accountRows = await win.locator('.account-row').count()
+  check('设置页含三个题库账号绑定行（CF/洛谷/力扣）', accountRows === 3, `实际 ${accountRows}`)
+  const cfRow = win.locator('.account-row[data-account="cf"]')
+  await cfRow.locator('input.input').fill('tourist')
+  await cfRow.locator('button', { hasText: '绑定' }).click()
+  await win.waitForTimeout(900)
+  const cfText = (await cfRow.innerText()).replace(/\s+/g, ' ')
+  check('绑定 Codeforces handle 后显示已绑定状态', cfText.includes('已绑定') && cfText.includes('tourist'), cfText.slice(0, 120))
+  // 洛谷行必须保留「登录洛谷」按钮（在线同步依赖应用内登录态）
   check(
-    '设置页说明「洛谷改用提交记录在线导入」',
-    settingsText.includes('提交记录'),
-    settingsText.slice(0, 160)
+    '洛谷账号行提供「登录洛谷」按钮',
+    (await win.locator('.account-row[data-account="luogu"] button', { hasText: '登录洛谷' }).count()) > 0
   )
+  // 力扣行提示只同步概况
+  const lcText = (await win.locator('.account-row[data-account="leetcode"]').innerText()).replace(/\s+/g, ' ')
+  check('力扣账号行说明无法同步逐题记录', lcText.includes('通过数'), lcText.slice(0, 120))
+  check('提供「同步全部已绑定账号」按钮', (await win.locator('button', { hasText: '同步全部已绑定账号' }).count()) > 0)
+  await win.screenshot({ path: path.join(OUT, '05-account-binding.png') })
   await win.screenshot({ path: path.join(OUT, '05-settings.png') })
 
   // 4b) 水平评估页（v1.8.4 回归）：记录历史后页面不得整页空白

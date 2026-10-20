@@ -15,6 +15,7 @@ import { registerLuoguIpc } from './luogu'
 import { registerLeetcodeIpc } from './leetcode'
 import { registerListsIpc } from './lists'
 import { registerPlansIpc } from './plans'
+import { registerAccountIpc } from './account'
 import { registerProfileIpc } from './profile'
 import { registerSkillIpc } from './skill'
 
@@ -48,6 +49,7 @@ export function registerIpc(repos: Repos): void {
   registerLeetcodeIpc(repos)
   registerListsIpc(repos)
   registerPlansIpc(repos)
+  registerAccountIpc(repos)
   registerProfileIpc(repos)
   registerSkillIpc(repos)
 }

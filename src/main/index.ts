@@ -3,6 +3,7 @@ import { appendFileSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import { initDb } from './db'
 import { createRepos } from './services'
+import { autoSyncOnStart } from './services/account-bind-sync'
 import { closeLoginWindow } from './services/web-window'
 import { createWindow } from './window'
 import { registerIpc } from './ipc'
@@ -48,6 +49,25 @@ process.on('unhandledRejection', (reason) => {
   reportCrash('unhandledRejection', reason)
 })
 
+/**
+ * v1.12 FR-30：启动时自动同步已绑定账号（仅对超过 6 小时的账号执行）。
+ * 失败只写日志，不影响启动；结果可在「设置 → 题库账号绑定」中查看。
+ */
+async function runAutoAccountSync(repos: ReturnType<typeof createRepos>): Promise<void> {
+  try {
+    const r = await autoSyncOnStart(repos)
+    if (r.synced.length > 0 || r.errors.length > 0) {
+      const summary = [
+        ...r.synced.map((s) => `${s.platform} +${s.imported}`),
+        ...r.errors.map((e) => `${e.platform} !${e.message.slice(0, 40)}`)
+      ].join(' | ')
+      appendFileSync(crashLogPath().replace('crash.log', 'account-sync.log'), `[${new Date().toISOString()}] ${summary}\n`, 'utf8')
+    }
+  } catch {
+    // 自动同步失败静默（用户可手动在设置页重试）
+  }
+}
+
 app.whenReady().then(() => {
   // 自动化验收/测试可指定独立 userData（避免触碰真实数据）：ACM_USER_DATA=<dir>
   const overrideUserData = process.env['ACM_USER_DATA']
@@ -59,7 +79,13 @@ app.whenReady().then(() => {
   initDb(join(app.getPath('userData'), 'acm-trainer.db'))
 
   // 注册 IPC 处理器（各域按 docs/03 §3）
-  registerIpc(createRepos())
+  const repos = createRepos()
+  registerIpc(repos)
+
+  // v1.12 FR-30：启动后自动同步已绑定账号（6 小时间隔；纯后台，不阻塞界面）
+  setTimeout(() => {
+    void runAutoAccountSync(repos)
+  }, 8000)
 
   const win = createWindow()
   // 主窗口关闭时一并关闭登录窗口（避免 window-all-closed 语义被其悬挂）

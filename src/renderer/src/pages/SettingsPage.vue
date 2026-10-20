@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { invoke } from '@/api/ipc'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
 import { IpcChannels } from '@shared/channels'
+import { useRoute } from 'vue-router'
 
 interface ExportResult {
   canceled: boolean
@@ -13,6 +14,7 @@ interface ExportResult {
 
 const toast = useToast()
 const user = useUserStore()
+const route = useRoute()
 const settings = ref<Record<string, string>>({})
 const loaded = ref(false)
 const saving = ref(false)
@@ -191,11 +193,160 @@ function setAutoSaveMs(raw: string): void {
 async function openLuoguLogin(): Promise<void> {
   try {
     await invoke(IpcChannels.LuoguOpenLogin, {})
-    toast.info('已打开登录窗口：登录完成后回到题库页点「在线导入」即可使用登录态')
+    toast.info('已打开登录窗口：登录完成后回到本页点「同步」即可自动抓取做题记录')
   } catch (e) {
     toast.error(e instanceof Error ? e.message : String(e))
   }
 }
+
+// ---------------- v1.12 FR-30：题库账号绑定 ----------------
+interface AccountBinding {
+  platform: 'cf' | 'luogu' | 'leetcode'
+  account: string | null
+  displayName: string | null
+  totalPassed: number | null
+  lastSyncAt: string | null
+  lastImported: number | null
+  lastError: string | null
+  supportsRecords: boolean
+}
+
+const accountBindings = ref<AccountBinding[]>([])
+const accountInputs = reactive<Record<string, string>>({ cf: '', luogu: '', leetcode: '' })
+const accountBusy = reactive<Record<string, boolean>>({ cf: false, luogu: false, leetcode: false })
+const syncingAll = ref(false)
+const autoSyncEnabled = ref(true)
+
+const PLATFORM_META: Record<
+  string,
+  { name: string; placeholder: string; hint: string; icon: string }
+> = {
+  cf: {
+    name: 'Codeforces',
+    icon: '🔵',
+    placeholder: 'Codeforces handle，如 tourist',
+    hint: '公开 API 无需登录，自动同步逐题 AC 记录'
+  },
+  luogu: {
+    name: '洛谷',
+    icon: '🟢',
+    placeholder: '洛谷 UID（纯数字），如 1935012',
+    hint: '需先在下方点「登录洛谷」获取登录态，再同步提交记录中的 AC'
+  },
+  leetcode: {
+    name: '力扣',
+    icon: '🟠',
+    placeholder: '力扣用户名（vue / 个人主页 leetcode.cn/u/<用户名>）',
+    hint: '官方仅公开通过数，逐题记录接口已下线，暂只同步概况'
+  }
+}
+
+async function loadAccounts(): Promise<void> {
+  try {
+    accountBindings.value = await invoke<AccountBinding[]>(IpcChannels.AccountList)
+    for (const b of accountBindings.value) accountInputs[b.platform] = b.account ?? ''
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+function bindingOf(platform: string): AccountBinding | undefined {
+  return accountBindings.value.find((b) => b.platform === platform)
+}
+
+async function bindAccount(platform: string): Promise<void> {
+  const account = (accountInputs[platform] ?? '').trim()
+  if (!account) {
+    toast.error('请输入账号后再绑定')
+    return
+  }
+  try {
+    await invoke(IpcChannels.AccountBind, { platform, account })
+    await loadAccounts()
+    toast.success(`已绑定 ${PLATFORM_META[platform].name} 账号：${account}`)
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+async function unbindAccount(platform: string): Promise<void> {
+  if (!confirm(`解绑 ${PLATFORM_META[platform].name} 账号？（已同步的练习记录会保留）`)) return
+  try {
+    await invoke(IpcChannels.AccountBind, { platform, account: null })
+    accountInputs[platform] = ''
+    await loadAccounts()
+    toast.info('已解绑')
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+async function syncOne(platform: string): Promise<void> {
+  accountBusy[platform] = true
+  try {
+    const r = await invoke<{
+      displayName: string
+      totalPassed: number | null
+      matched: number
+      imported: number
+      skipped: number
+      unmatched: number
+      note?: string
+    }>(IpcChannels.AccountSync, { platform })
+    await loadAccounts()
+    if (r.note) toast.info(r.note)
+    else
+      toast.success(
+        `${PLATFORM_META[platform].name} · ${r.displayName}：通过 ${r.totalPassed ?? '—'} 题，` +
+          `匹配 ${r.matched}，新增 ${r.imported}，跳过 ${r.skipped}`
+      )
+  } catch (e) {
+    await loadAccounts()
+    toast.error(`同步失败：${e instanceof Error ? e.message : String(e)}`)
+  } finally {
+    accountBusy[platform] = false
+  }
+}
+
+async function syncAll(): Promise<void> {
+  if (syncingAll.value) return
+  syncingAll.value = true
+  try {
+    const r = await invoke<{
+      results: { platform: string; imported: number; displayName: string }[]
+      errors: { platform: string; message: string }[]
+    }>(IpcChannels.AccountSyncAll)
+    await loadAccounts()
+    const ok = r.results.map((x) => `${PLATFORM_META[x.platform]?.name ?? x.platform} +${x.imported}`)
+    const bad = r.errors.map((x) => `${PLATFORM_META[x.platform]?.name ?? x.platform} 失败`)
+    if (ok.length === 0 && bad.length === 0) toast.info('还没有绑定任何账号')
+    else toast.success(`同步完成：${[...ok, ...bad].join('，')}`)
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  } finally {
+    syncingAll.value = false
+  }
+}
+
+function fmtSyncTime(s: string | null): string {
+  if (!s) return '从未同步'
+  return s.slice(0, 16)
+}
+
+async function loadAutoSyncSetting(): Promise<void> {
+  try {
+    const all = await invoke<Record<string, string>>(IpcChannels.SettingsGetAll)
+    autoSyncEnabled.value = all.autoSyncEnabled !== 'false'
+  } catch {
+    autoSyncEnabled.value = true
+  }
+}
+
+async function setAutoSync(v: boolean): Promise<void> {
+  autoSyncEnabled.value = v
+  await invoke(IpcChannels.SettingsSet, { key: 'autoSyncEnabled', value: v ? 'true' : 'false' })
+}
+
 
 async function exportBackup(): Promise<void> {
   if (exporting.value) return
@@ -233,6 +384,15 @@ async function importBackup(): Promise<void> {
 
 onMounted(() => {
   void load()
+  // v1.12：账号绑定状态与自动同步开关
+  void loadAccounts()
+  void loadAutoSyncSetting()
+  // 从题库页「账号绑定」入口跳转过来时，滚动定位到账号面板
+  if (route.query.section === 'account') {
+    requestAnimationFrame(() => {
+      document.querySelector('[data-panel="account"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
+  }
 })
 </script>
 
@@ -385,6 +545,72 @@ onMounted(() => {
       <p class="dim small">力扣练习分为独立板块，不参与上方 CF 综合分；难度统计见「统计 → 难度分布」。</p>
     </div>
 
+    <!-- v1.12 FR-30：题库账号绑定与自动同步 -->
+    <div class="panel" data-panel="account">
+      <h3>题库账号绑定</h3>
+      <p class="dim small">
+        绑定各平台的账号后，应用会在启动时（间隔 ≥ 6 小时）自动抓取「已通过的题目」并写入练习记录，无需手动导入。
+        绑定信息仅保存在本机，不含密码或令牌。
+      </p>
+      <div class="account-list">
+        <div v-for="p in ['cf', 'luogu', 'leetcode']" :key="p" class="account-row" :data-account="p">
+          <div class="acc-head">
+            <span class="acc-name">{{ PLATFORM_META[p].icon }} {{ PLATFORM_META[p].name }}</span>
+            <span v-if="bindingOf(p)?.account" class="acc-state bound">
+              已绑定 {{ bindingOf(p)?.account }}
+              <span v-if="bindingOf(p)?.displayName" class="dim">（{{ bindingOf(p)?.displayName }}）</span>
+            </span>
+            <span v-else class="acc-state dim">未绑定</span>
+          </div>
+          <div class="acc-input">
+            <input v-model="accountInputs[p]" class="input" :placeholder="PLATFORM_META[p].placeholder" />
+            <button class="btn" :disabled="accountBusy[p]" @click="bindAccount(p)">绑定</button>
+            <button
+              class="btn primary"
+              :disabled="accountBusy[p] || !bindingOf(p)?.account"
+              @click="syncOne(p)"
+            >
+              {{ accountBusy[p] ? '同步中…' : '同步' }}
+            </button>
+            <button
+              v-if="bindingOf(p)?.account"
+              class="btn ghost"
+              :disabled="accountBusy[p]"
+              @click="unbindAccount(p)"
+            >
+              解绑
+            </button>
+            <button v-if="p === 'luogu'" class="btn ghost" @click="openLuoguLogin()">登录洛谷</button>
+          </div>
+          <div class="acc-meta dim small">
+            {{ PLATFORM_META[p].hint }}
+            <span class="sep">·</span>
+            上次同步：{{ fmtSyncTime(bindingOf(p)?.lastSyncAt ?? null) }}
+            <span v-if="bindingOf(p)?.totalPassed != null" class="sep">·</span>
+            <span v-if="bindingOf(p)?.totalPassed != null">通过 {{ bindingOf(p)?.totalPassed }} 题</span>
+            <span v-if="bindingOf(p)?.lastImported" class="ok-note">（新增 {{ bindingOf(p)?.lastImported }}）</span>
+            <span v-if="bindingOf(p)?.lastError" class="warn">· 上次错误：{{ bindingOf(p)?.lastError }}</span>
+          </div>
+          <div v-if="!bindingOf(p)?.supportsRecords" class="dim small">
+            ⚠️ 该平台接口只提供通过数，无法自动同步逐题记录（可用题库页「粘贴题号/内容」导入具体题目）。
+          </div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn" :disabled="syncingAll" @click="syncAll()">
+          {{ syncingAll ? '同步中…' : '↻ 同步全部已绑定账号' }}
+        </button>
+        <label class="auto-sync">
+          <input
+            type="checkbox"
+            :checked="autoSyncEnabled"
+            @change="setAutoSync(($event.target as HTMLInputElement).checked)"
+          />
+          <span class="dim small">启动时自动同步（≥ 6 小时一次）</span>
+        </label>
+      </div>
+    </div>
+
     <div class="panel">
       <h3>洛谷账号（UID 导入用）</h3>
       <p class="dim small">
@@ -535,5 +761,53 @@ onMounted(() => {
 .panel p .ok-note {
   color: #3cb371;
   font-weight: 600;
+}
+/* v1.12：账号绑定面板 */
+.account-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 10px 0;
+}
+.account-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.acc-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.acc-name {
+  font-weight: 600;
+  font-size: 13px;
+}
+.acc-state.bound {
+  color: var(--success, #3cb371);
+  font-size: 12px;
+}
+.acc-input {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.acc-input .input {
+  flex: 1;
+  min-width: 220px;
+}
+.acc-meta .sep {
+  margin: 0 4px;
+}
+.auto-sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 8px;
 }
 </style>
