@@ -252,6 +252,10 @@ async function doImport(mode: 'fetch' | 'paste'): Promise<void> {
     await store.load()
   } catch (e) {
     const msg = errMsg(e)
+    // 洛谷改版：在线导入不可用 → 直接打开粘贴面板，少一步操作
+    if (/改版|不再提供做题记录|LUOGU_PRACTICE_UNAVAILABLE/.test(msg)) {
+      pasteMode.value = true
+    }
     // 登录类错误直接展示完整引导文案
     if (msg.includes('登录') || msg.includes('luogu')) {
       toast.error(msg)
@@ -669,6 +673,7 @@ onMounted(() => {
           <button class="btn primary" :disabled="importing" @click="doImport('paste')">粘贴导入</button>
         </div>
         <div class="dim small tip">
+          <b class="warn">🔔 洛谷已改版（2026）：用户页不再提供做题记录，UID「在线导入」暂时无法使用，请改用上面的「粘贴题号/内容」导入。</b>
           在线导入需要登录态：到「设置 → 洛谷账号（UID 导入用）」点「登录洛谷」打开登录窗口完成登录后重试（题面现在用 Edge 打开，登录态在应用内窗口）；且目标用户需在洛谷「个人设置-隐私」中公开练习情况。
           导入的 AC 记录计入练习统计（可随时删除）。
         </div>
@@ -1110,6 +1115,10 @@ onMounted(() => {
 }
 .import-panel .tip {
   line-height: 1.5;
+}
+.import-panel .tip .warn {
+  color: #e6a23c;
+  font-weight: 600;
 }
 .chip {
   border: 1px solid var(--border);

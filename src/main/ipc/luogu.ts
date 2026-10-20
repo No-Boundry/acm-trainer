@@ -12,10 +12,12 @@ import {
 } from '../services/luogu'
 import {
   isLuoguChallengePage,
+  isLentillePage,
   parseLuoguUserPractice,
   buildPracticeFromText,
   importLuoguPractice,
   LUOGU_LOGIN_REQUIRED,
+  LUOGU_PRACTICE_UNAVAILABLE,
   type ImportPracticeResult
 } from '../services/luogu-user'
 import {
@@ -145,6 +147,14 @@ export function registerLuoguIpc(repos: Repos): void {
       throw new AppError(
         LUOGU_LOGIN_REQUIRED,
         '洛谷要求登录：请先在设置页打开「登录洛谷」窗口完成登录，然后重试导入'
+      )
+    }
+    // v1.11：洛谷改版后用户页不再内嵌 passedProblems → 提前给出可操作提示（而不是「缺 uid 解析失败」）
+    if (isLentillePage(text) && !text.includes('passedProblems')) {
+      throw new AppError(
+        LUOGU_PRACTICE_UNAVAILABLE,
+        '洛谷改版后用户页已不再提供做题记录（passedProblems 字段被移除），UID 在线导入暂不可用。' +
+          '请改用「粘贴文本」导入：在洛谷个人主页「练习情况」复制题号列表，或对用户页右键「查看网页源代码」后整体粘贴（识别逻辑与在线导入一致）'
       )
     }
     const practice = parseLuoguUserPractice(text)

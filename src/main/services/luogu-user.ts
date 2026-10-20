@@ -58,13 +58,28 @@ interface PassedProblemItem {
   type?: string
 }
 
-/** 洛谷用户页 JSON 结构（解析目标形态） */
+/** 洛谷用户页 JSON 结构（v1.2 旧版 tanuki 形态） */
 interface LuoguUserJson {
   currentData?: {
     user?: {
       uid?: number
       name?: string
       passedProblemCount?: number | null
+      submittedProblemCount?: number | null
+      passedProblems?: PassedProblemItem[] | null
+    } | null
+  }
+}
+
+/** 洛谷前端改版后的内嵌数据形态（v1.11）：<script id="lentille-context" type="application/json"> */
+interface LuoguLentilleJson {
+  template?: string
+  data?: {
+    user?: {
+      uid?: number
+      name?: string
+      passedProblemCount?: number | null
+      submittedProblemCount?: number | null
       passedProblems?: PassedProblemItem[] | null
     } | null
   }
@@ -73,17 +88,31 @@ interface LuoguUserJson {
 /** 登录提示错误码 */
 export const LUOGU_LOGIN_REQUIRED = 'LUOGU_LOGIN_REQUIRED'
 
+/** 洛谷改版后不再下发做题记录的错误码（引导用户改用文本导入） */
+export const LUOGU_PRACTICE_UNAVAILABLE = 'LUOGU_PRACTICE_UNAVAILABLE'
+
 /** 判定是否登录墙/验证页（洛谷匿名挑战页标题特征） */
 export function isLuoguChallengePage(html: string): boolean {
   return html.includes('Welcome - Luogu') || html.includes('Spilopelia')
 }
 
+/** 是否为新版 lentille 内嵌数据页（无论是否带做题记录） */
+export function isLentillePage(text: string): boolean {
+  return /<script[^>]+id=["']lentille-context["']/.test(text)
+}
+
+/** 把新版 lentille 结构归一成旧版 currentData 形态，便于后续统一处理 */
+function normalizeLentille(raw: LuoguLentilleJson): LuoguUserJson {
+  return { currentData: { user: raw?.data?.user ?? null } }
+}
+
 /**
- * 解析洛谷用户练习数据（三种输入形态）：
- * 1. `?_contentOnly=1` 裸 JSON：{ currentData: { user: { uid, name, passedProblemCount, passedProblems } } }
- * 2. 用户页 HTML（内嵌 script JSON，与列表页同构提取）
- * 3. 直接粘贴的完整 JSON（同形态 1）
- * 登录墙/数据缺失 → AppError(LUOGU_LOGIN_REQUIRED)
+ * 解析洛谷用户练习数据（四种输入形态）：
+ * 1. `?_contentOnly=1` 裸 JSON（旧版）：{ currentData: { user: { uid, name, passedProblemCount, passedProblems } } }
+ * 2. 用户页 HTML（旧版）：内嵌 `window._feIni = JSON.parse("...")`
+ * 3. 用户页 HTML（v1.11 改版）：`<script id="lentille-context" type="application/json">{"data":{"user":{...}}}`
+ * 4. 直接粘贴的完整 JSON（任意上述形态）
+ * 登录墙/数据缺失 → LUOGU_LOGIN_REQUIRED；改版后无做题记录 → LUOGU_PRACTICE_UNAVAILABLE（引导文本导入）
  */
 export function parseLuoguUserPractice(text: string): LuoguUserPractice {
   const raw = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text
@@ -91,15 +120,11 @@ export function parseLuoguUserPractice(text: string): LuoguUserPractice {
 
   let parsed: LuoguUserJson
 
-  // 形态 1/3：直接 JSON
+  // 形态 1/4：直接 JSON
   if (trimmed.startsWith('{')) {
-    try {
-      parsed = JSON.parse(trimmed) as LuoguUserJson
-    } catch {
-      parsed = {}
-    }
+    parsed = normalizeAnyJson(trimmed) ?? {}
   } else {
-    // 形态 2：HTML → 找内嵌 JSON script 块
+    // 形态 2/3：HTML → 找内嵌 JSON script 块（旧版 _feIni 优先，其次新版 lentille-context）
     parsed = extractFromHtml(raw)
   }
 
@@ -112,12 +137,22 @@ export function parseLuoguUserPractice(text: string): LuoguUserPractice {
     throw new AppError('LUOGU_PARSE_FAILED', '洛谷用户数据缺少 uid（解析失败）')
   }
 
-  const passedProblems = Array.isArray(user.passedProblems) ? user.passedProblems : null
-  if (passedProblems === null) {
-    // 登录但未公开/无数据：uid=1 匿名场景返回 null 字段
+  // 匿名字段（挑战页/未登录）：passedProblems / passedProblemCount / submittedProblemCount 全空
+  // → 解析器只能报「未获取到做题记录」，具体是「要登录」还是「洛谷改版」由调用方按页面特征区分
+  if (user.passedProblemCount == null && user.submittedProblemCount == null && !Array.isArray(user.passedProblems)) {
     throw new AppError(
       LUOGU_LOGIN_REQUIRED,
-      '目标用户未公开做题记录（passedProblems 不可见），请确认其在洛谷「个人设置-隐私」中公开了练习情况'
+      '未获取到做题记录：可能是未登录（请在应用内「登录洛谷」窗口完成登录）或该用户未公开练习情况。若确认已登录仍报此错，说明洛谷改版已移除该字段，请改用「粘贴文本」导入'
+    )
+  }
+
+  const passedProblems = Array.isArray(user.passedProblems) ? user.passedProblems : null
+  if (passedProblems === null) {
+    // v1.11：洛谷改版后用户页不再内嵌 passedProblems（登录态下同样为 null，但计数字段有值）
+    throw new AppError(
+      LUOGU_PRACTICE_UNAVAILABLE,
+      '洛谷已改版：用户页不再直接提供做题记录（passedProblems 字段已被移除），在线导入暂不可用。' +
+        '请在洛谷个人主页「练习情况」复制题号列表，或用浏览器的「查看网页源代码」把源码粘贴到「粘贴文本」导入（两者的识别结果完全相同）'
     )
   }
   const pids: string[] = []
@@ -137,21 +172,29 @@ export function parseLuoguUserPractice(text: string): LuoguUserPractice {
   }
 }
 
-function tryParseJson(text: string): LuoguUserJson | null {
+/** 兼容两种 JSON：旧版 currentData / 新版 lentille（data.user） */
+function normalizeAnyJson(text: string): LuoguUserJson | null {
+  let obj: unknown
   try {
-    const p = JSON.parse(text) as LuoguUserJson
-    if (p && typeof p === 'object' && 'currentData' in p) return p
+    obj = JSON.parse(text)
   } catch {
-    // 尝试实体反转义后再解析
+    const decoded = unescapeHtmlEntities(text)
     try {
-      const decoded = unescapeHtmlEntities(text)
-      const p2 = JSON.parse(decoded) as LuoguUserJson
-      if (p2 && typeof p2 === 'object' && 'currentData' in p2) return p2
+      obj = JSON.parse(decoded)
     } catch {
-      // 均失败
+      return null
     }
   }
+  if (!obj || typeof obj !== 'object') return null
+  const rec = obj as Record<string, unknown>
+  if (rec.currentData || rec.user) return obj as LuoguUserJson
+  if (rec.data) return normalizeLentille(obj as LuoguLentilleJson)
   return null
+}
+
+function tryParseJson(text: string): LuoguUserJson | null {
+  const parsed = normalizeAnyJson(text)
+  return parsed && 'currentData' in parsed ? parsed : null
 }
 
 /** HTML 实体与 JS 转义反转义（洛谷页面 script 内 JSON 可能被转义） */
@@ -166,6 +209,15 @@ function unescapeHtmlEntities(s: string): string {
 }
 
 function extractFromHtml(html: string): LuoguUserJson {
+  // v1.11：新版内嵌数据块 <script id="lentille-context" type="application/json">…</script>
+  const lentille = html.match(
+    /<script[^>]*id=["']lentille-context["'][^>]*>([\s\S]*?)<\/script>/i
+  )
+  if (lentille) {
+    const parsed = tryParseJson(lentille[1].trim())
+    if (parsed) return parsed
+  }
+
   const scriptRe = /<script[^>]*>([\s\S]*?)<\/script>/g
   let m: RegExpExecArray | null
   while ((m = scriptRe.exec(html)) !== null) {
@@ -175,7 +227,7 @@ function extractFromHtml(html: string): LuoguUserJson {
       const parsed = tryParseJson(body)
       if (parsed) return parsed
     }
-    // 形态 B：window._feIni = JSON.parse("...")
+    // 形态 B：window._feIni = JSON.parse("...")（v1.2 旧版）
     const pm = body.match(/window\._feIni\s*=\s*JSON\.parse\("([\s\S]*?)"\)/)
     if (pm) {
       const unescaped = pm[1]

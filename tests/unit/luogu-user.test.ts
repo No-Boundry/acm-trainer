@@ -4,9 +4,11 @@ import {
   parseLuoguUserPractice,
   importLuoguPractice,
   isLuoguChallengePage,
+  isLentillePage,
   scanPidsFromText,
   buildPracticeFromText,
-  LUOGU_LOGIN_REQUIRED
+  LUOGU_LOGIN_REQUIRED,
+  LUOGU_PRACTICE_UNAVAILABLE
 } from '../../src/main/services/luogu-user'
 import { initDb, closeDb } from '../../src/main/db/index'
 import { ProblemsRepo } from '../../src/main/db/repositories/problems'
@@ -127,6 +129,69 @@ describe('parseLuoguUserPractice（FR-8.9 解析，三种形态）', () => {
   it('挑战页判定', () => {
     expect(isLuoguChallengePage('<title>Welcome - Luogu Spilopelia</title>')).toBe(true)
     expect(isLuoguChallengePage('{"currentData":{}}')).toBe(false)
+  })
+
+  // ---------- v1.11：洛谷前端改版（lentille-context）回归 ----------
+  it('v1.11 新版 lentille-context 页面（计数全空=匿名）→ LUOGU_LOGIN_REQUIRED，提示里带「粘贴」兜底', () => {
+    const html = `<html><head><title>kkksc03 的个人中心</title></head><body>
+<script id="lentille-context" type="application/json">{"instance":"main","template":"user.show","status":200,"locale":"zh-CN","data":{"dailyCounts":[],"user":{"uid":1,"name":"kkksc03","ranking":4257,"passedProblemCount":null,"submittedProblemCount":null}}}</script>
+</body></html>`
+    expect(isLentillePage(html)).toBe(true)
+    try {
+      parseLuoguUserPractice(html)
+      throw new Error('应当抛错')
+    } catch (e) {
+      expect((e as AppError).code).toBe(LUOGU_LOGIN_REQUIRED)
+      expect((e as AppError).message).toMatch(/粘贴/)
+    }
+  })
+
+  it('v1.11 已登录但字段被移除（计数有值、无 passedProblems）→ LUOGU_PRACTICE_UNAVAILABLE 并引导粘贴', () => {
+    const html = `<script id="lentille-context" type="application/json">${JSON.stringify({
+      template: 'user.show',
+      data: {
+        user: { uid: 125479, name: '某用户', passedProblemCount: 512, submittedProblemCount: 700, passedProblems: null }
+      }
+    })}</script>`
+    try {
+      parseLuoguUserPractice(html)
+      throw new Error('应当抛错')
+    } catch (e) {
+      expect((e as AppError).code).toBe(LUOGU_PRACTICE_UNAVAILABLE)
+      expect((e as AppError).message).toMatch(/改版/)
+      expect((e as AppError).message).toMatch(/粘贴/)
+    }
+  })
+
+  it('v1.11 新版结构若带 passedProblems，仍能正常解析（向后兼容）', () => {
+    const html = `<script id="lentille-context" type="application/json">${JSON.stringify({
+      template: 'user.show',
+      data: {
+        user: {
+          uid: 125479,
+          name: '某用户',
+          passedProblemCount: 3,
+          passedProblems: [{ pid: 'P1001' }, { pid: 'P1002' }, { pid: 'P1001' }, { pid: 'B2005' }]
+        }
+      }
+    })}</script>`
+    const p = parseLuoguUserPractice(html)
+    expect(p.uid).toBe(125479)
+    expect(p.name).toBe('某用户')
+    expect(p.passedPids).toEqual(['P1001', 'P1002'])
+    expect(p.passedProblemCount).toBe(3)
+  })
+
+  it('直接粘贴新版 lentille JSON（data.user）同样可解析', () => {
+    const json = JSON.stringify({ data: { user: { uid: 88, name: 'X', passedProblems: [{ pid: 'P1000' }] } } })
+    const p = parseLuoguUserPractice(json)
+    expect(p.uid).toBe(88)
+    expect(p.passedPids).toEqual(['P1000'])
+  })
+
+  it('isLentillePage 只认新版数据块，不误判旧版页面', () => {
+    expect(isLentillePage('<script id="lentille-context" type="application/json">{}</script>')).toBe(true)
+    expect(isLentillePage('<script>window._feIni = JSON.parse("{}")</script>')).toBe(false)
   })
 })
 
