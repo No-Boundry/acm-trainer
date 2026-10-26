@@ -46,8 +46,8 @@ async function main() {
   // ================= 场景 1：记录练习 → 掌握度与统计联动 =================
   log('=== 场景 1：记录练习联动 ===')
   await gotoPage(win, '题库')
-  // 展开知识点筛选，记录「动态规划入门」初始计数
-  await win.locator('.kn-panel .kn-toggle').click()
+  // v1.13：知识点并入标签分栏 → 先切到「知识点」Tab 再读取计数
+  await win.locator('.seg-tab', { hasText: '知识点' }).first().click()
   await win.waitForTimeout(300)
   const dpBefore = await readKnowledgeChip(win, '动态规划入门')
   check('知识点「动态规划入门」标签可读', !!dpBefore, String(dpBefore))
@@ -172,8 +172,8 @@ async function main() {
   check('已跳转到题库页', /#\/problems/.test(win.url()), win.url())
   check('URL 携带 knowledge 参数', /knowledge=/.test(win.url()), win.url())
 
-  const panelOpen = await win.locator('.kn-panel .kn-chips').count()
-  check('知识点面板自动展开', panelOpen > 0)
+  const panelOpen = await win.locator('.kn-chips').count()
+  check('自动切到「知识点」标签页', panelOpen > 0)
   const selectedChips = await win.locator('.kn-chip.on').count()
   check(
     '建议学习的知识点已全部选中',

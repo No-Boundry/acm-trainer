@@ -8,8 +8,9 @@ import ProblemsPage from '@/pages/ProblemsPage.vue'
 import type { ProblemRow, SkillNodeReport } from '@shared/types'
 
 /**
- * 题库页「知识点筛选」UI 组件测试（v1.8 FR-17）：
- * 分层标签 + 掌握度色点 + 已练/已 AC 题数、多选并集筛选载荷、清空。
+ * 题库页「知识点筛选」组件测试（v1.8 FR-17 → v1.13 合并版）。
+ * v1.13 起：知识点不再是独立面板，而是标签分栏里的「知识点」Tab，
+ * 选中节点 = 选中该节点的全部关联标签（与标签共用 store.filter.tags，不再发送 tagsAny）。
  */
 
 function skillNodes(): SkillNodeReport[] {
@@ -77,8 +78,13 @@ const row: ProblemRow = {
   lastStatus: null
 }
 
+interface ListPayload {
+  tags?: string[]
+  tagsAny?: string[]
+}
+
 function setupApi() {
-  const listPayloads: { tagsAny?: string[] }[] = []
+  const listPayloads: ListPayload[] = []
   const api = {
     invoke: vi.fn(async (channel: string) => {
       const handlers: Record<string, () => unknown> = {
@@ -87,26 +93,21 @@ function setupApi() {
         [IpcChannels.ProblemsTags]: () => ['greedy', 'dp'],
         [IpcChannels.ProblemsLastSync]: () => ({ cf: '2026-09-01 00:00:00', luogu: null })
       }
-      // 记录 problems:list 的载荷
       const h = handlers[channel]
       if (!h) return { ok: false, error: { code: 'NO_HANDLER', message: channel } }
       return { ok: true, data: await h() }
     }),
     on: vi.fn(() => () => undefined)
   }
-  // 单独包一层以捕获 problems:list 载荷
   const original = api.invoke
   api.invoke = vi.fn(async (channel: string, payload?: unknown) => {
-    if (channel === IpcChannels.ProblemsList) {
-      listPayloads.push(payload as { tagsAny?: string[] })
-    }
+    if (channel === IpcChannels.ProblemsList) listPayloads.push(payload as ListPayload)
     return original(channel, payload)
   }) as unknown as typeof original
   ;(window as unknown as { api: unknown }).api = api
   return { api, listPayloads }
 }
 
-/** ProblemsPage 使用 vue-router（useRoute/useRouter），测试需提供内存路由 */
 function makeRouter() {
   return createRouter({
     history: createMemoryHistory(),
@@ -129,89 +130,132 @@ async function mountPage(query: Record<string, string> = {}) {
   return { wrapper, router, ...ctx }
 }
 
-describe('ProblemsPage 知识点筛选（v1.8 FR-17）', () => {
+/** 当前激活的标签分类 Tab 名 */
+function activeCat(wrapper: ReturnType<typeof mount>): string {
+  return wrapper.find('.seg-tab.on').text()
+}
+
+describe('ProblemsPage 知识点筛选（v1.13 并入标签分栏）', () => {
   beforeEach(() => {
     vi.restoreAllMocks()
     delete (window as unknown as { api?: unknown }).api
   })
 
-  it('渲染知识点筛选区块：分层分组 + 掌握度色点 + 已练/已 AC 题数', async () => {
+  it('知识点是标签分栏的第一个 Tab，不再有独立面板', async () => {
     const { wrapper } = await mountPage()
-    const panel = wrapper.find('.kn-panel')
-    expect(panel.exists()).toBe(true)
-    // 展开
-    await panel.find('.kn-toggle').trigger('click')
+    // 旧面板已移除
+    expect(wrapper.find('.kn-panel').exists()).toBe(false)
+    // 第一个 Tab 即「知识点」
+    const tabs = wrapper.findAll('.seg-tab')
+    expect(tabs.length).toBeGreaterThan(1)
+    expect(tabs[0].text()).toContain('知识点')
+    wrapper.unmount()
+  })
+
+  it('切到知识点 Tab：分层分组 + 掌握度色点 + 已练/已 AC 题数 + 掌握概览', async () => {
+    const { wrapper } = await mountPage()
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
     const chips = wrapper.findAll('.kn-chip')
-    expect(chips).toHaveLength(3) // 贪心 / 动态规划入门 / 综合节点
+    expect(chips).toHaveLength(3)
     const disabled = chips.find((c) => c.text().includes('综合模拟与比赛策略'))!
     expect(disabled.classes()).toContain('disabled')
-    expect(disabled.attributes('disabled')).toBeDefined()
     const greedy = chips.find((c) => c.text().includes('贪心'))!
-    expect(greedy.text()).toContain('3/2') // 已练 3 / 已 AC 2
+    expect(greedy.text()).toContain('3/2')
     expect(greedy.find('.dot').exists()).toBe(true)
-    // 分层标注存在（L1 / L2）
-    expect(panel.text()).toContain('L1')
-    expect(panel.text()).toContain('L2')
-    // 题源提示：贪心同时具备 CF 与洛谷标签
-    expect(greedy.attributes('title')).toContain('可筛出 Codeforces 与洛谷题')
-
-    // 整体掌握概览（五档计数，仅渲染存在的档位）
-    const summary = wrapper.find('.kn-summary')
+    expect(wrapper.text()).toContain('L1')
+    expect(wrapper.text()).toContain('L2')
+    expect(greedy.attributes('title')).toContain('关联标签 2 个')
+    // 掌握概览：练习中 1 / 未开始 1
+    const summary = wrapper.find('.kn-summary-line')
     expect(summary.exists()).toBe(true)
     expect(summary.text()).toContain('练习中 1')
     expect(summary.text()).toContain('未开始 1')
     wrapper.unmount()
   })
 
-  it('点击知识点 → 请求携带 tagsAny 并集；再次点击取消；清空按钮还原', async () => {
+  it('点击知识点 → 其关联标签进入统一 tags 筛选（不再发送 tagsAny）', async () => {
     const { wrapper, listPayloads } = await mountPage()
-    await wrapper.find('.kn-panel .kn-toggle').trigger('click')
-    const chips = wrapper.findAll('.kn-chip')
-    const greedy = chips.find((c) => c.text().includes('贪心'))!
-    const dp = chips.find((c) => c.text().includes('动态规划'))!
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
+    const greedy = wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!
 
     await greedy.trigger('click')
     await flushPromises()
     let last = listPayloads[listPayloads.length - 1]
-    expect(last.tagsAny?.sort()).toEqual(['greedy', '贪心'].sort())
+    expect(last.tags?.sort()).toEqual(['greedy', '贪心'].sort())
+    expect(last.tagsAny).toBeUndefined() // v1.13：合流后不再有独立通道
 
-    await dp.trigger('click')
+    // 节点呈选中态 + 已选 chips 出现这两个标签
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(1)
+    const chips = wrapper.findAll('.sel-line .chip').map((c) => c.text())
+    expect(chips.join('|')).toContain('greedy')
+    expect(chips.join('|')).toContain('贪心')
+
+    // 再点一次取消
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!.trigger('click')
     await flushPromises()
     last = listPayloads[listPayloads.length - 1]
-    expect(last.tagsAny?.sort()).toEqual(['dp', 'greedy', '动态规划 DP', '贪心'].sort())
+    expect(last.tags).toEqual([])
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(0)
+    wrapper.unmount()
+  })
 
-    // 顶部显示已选数量 + 清空
-    expect(wrapper.find('.kn-panel').text()).toContain('已选 2 个知识点')
-    const clear = wrapper.findAll('button').find((b) => b.text().includes('清空知识点'))!
+  it('多个知识点可叠加（标签并集）；「全部清空」一次性还原', async () => {
+    const { wrapper, listPayloads } = await mountPage()
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!.trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('动态规划'))!.trigger('click')
+    await flushPromises()
+    const last = listPayloads[listPayloads.length - 1]
+    expect(last.tags?.sort()).toEqual(['dp', 'greedy', '动态规划 DP', '贪心'].sort())
+    expect(wrapper.find('.kn-summary-line').text()).toContain('已选 2 个知识点')
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(2)
+
+    const clear = wrapper.findAll('button').find((b) => b.text().includes('全部清空'))!
     await clear.trigger('click')
     await flushPromises()
-    last = listPayloads[listPayloads.length - 1]
-    expect(last.tagsAny).toEqual([])
+    expect(listPayloads[listPayloads.length - 1].tags).toEqual([])
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(0)
     wrapper.unmount()
   })
 
-  it('深链 ?knowledge=… （技能树「去题库练习」跳转）：自动展开并选中对应知识点', async () => {
+  it('普通标签 Tab 与知识点共用同一套选中状态（去掉标签后节点自动取消选中）', async () => {
+    const { wrapper, listPayloads } = await mountPage()
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!.trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(1)
+
+    // 在「已选」条里移除标签 greedy → 节点不再完整选中
+    const chip = wrapper.findAll('.sel-line .chip').find((c) => c.text().includes('greedy'))!
+    await chip.trigger('click')
+    await flushPromises()
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(0)
+    expect(listPayloads[listPayloads.length - 1].tags).toEqual(['贪心'])
+    wrapper.unmount()
+  })
+
+  it('深链 ?knowledge=… （技能树「去题库练习」跳转）：自动切到知识点 Tab 并选中', async () => {
     const { wrapper, listPayloads } = await mountPage({ knowledge: 'greedy,dp' })
     await flushPromises()
-    // 面板自动展开
-    expect(wrapper.find('.kn-panel .kn-chips').exists()).toBe(true)
-    // 两个知识点均处于选中态
-    const onChips = wrapper.findAll('.kn-chip.on')
-    expect(onChips).toHaveLength(2)
-    expect(wrapper.find('.kn-panel').text()).toContain('已选 2 个知识点')
-    // 请求携带并集标签（取携带非空 tagsAny 的请求，避免受并发顺序影响）
-    const withTags = listPayloads.filter((x) => (x.tagsAny ?? []).length > 0)
-    expect(withTags.length).toBeGreaterThan(0)
-    expect(withTags[withTags.length - 1].tagsAny?.sort()).toEqual(
-      ['dp', 'greedy', '动态规划 DP', '贪心'].sort()
-    )
+    expect(activeCat(wrapper)).toContain('知识点')
+    expect(wrapper.find('.kn-chips').exists()).toBe(true)
+    expect(wrapper.findAll('.kn-chip.on')).toHaveLength(2)
+    expect(wrapper.find('.kn-summary-line').text()).toContain('已选 2 个知识点')
+    const last = listPayloads[listPayloads.length - 1]
+    expect(last.tags?.sort()).toEqual(['dp', 'greedy', '动态规划 DP', '贪心'].sort())
     wrapper.unmount()
   })
 
-  it('未选中知识点时请求不带过滤（tagsAny 为空数组）', async () => {
+  it('未选中任何筛选项时请求不带标签过滤', async () => {
     const { wrapper, listPayloads } = await mountPage()
     const first = listPayloads[0]
-    expect(first.tagsAny).toEqual([])
+    expect(first.tags ?? []).toEqual([])
+    expect(first.tagsAny).toBeUndefined()
     wrapper.unmount()
   })
 })

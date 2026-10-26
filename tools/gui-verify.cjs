@@ -151,13 +151,14 @@ async function main() {
     `界面 "${shownVersion}" / package.json "v${pkgVersion}"`
   )
 
-  // 2) 题库页：知识点筛选
+  // 2) 题库页：知识点（v1.13 起并入标签分栏的第一个 Tab，不再有独立面板）
   await win.locator('.nav-item', { hasText: '题库' }).click()
   await win.waitForTimeout(1200)
-  const panel = win.locator('.kn-panel')
-  check('知识点筛选区块存在', (await panel.count()) > 0)
-  await panel.locator('.kn-toggle').click()
-  await win.waitForTimeout(400)
+  check('旧「知识点筛选」独立面板已移除（与标签合流）', (await win.locator('.kn-panel').count()) === 0)
+  const knTab = win.locator('.seg-tab', { hasText: '知识点' }).first()
+  check('标签分栏第一个 Tab 为「知识点」', (await knTab.count()) > 0)
+  await knTab.click()
+  await win.waitForTimeout(500)
   const chipCount = await win.locator('.kn-chip').count()
   check('知识点标签数 = 54（v1.10 新增国内比赛节点）', chipCount === 54, `实际 ${chipCount}`)
   // v1.12：在线导入已迁移到设置页「题库账号绑定」，题库页只保留粘贴导入与入口
@@ -169,8 +170,8 @@ async function main() {
   )
   await win.screenshot({ path: path.join(OUT, '02-problems-knowledge.png') })
 
-  // 掌握度概览与色点
-  const summaryText = (await panel.locator('.kn-summary').innerText()).replace(/\s+/g, ' ')
+  // 掌握度概览与色点（v1.13：概览行在知识点 Tab 内）
+  const summaryText = (await win.locator('.kn-summary-line').innerText()).replace(/\s+/g, ' ')
   check(
     '掌握概览含「基本掌握」与「初学」且计数 ≥1',
     /基本掌握\s*[1-9]/.test(summaryText) && /初学\s*[1-9]/.test(summaryText),
@@ -196,14 +197,24 @@ async function main() {
   const greedyText = (await greedyChip.innerText()).replace(/\s+/g, ' ')
   check('贪心显示已练 9 / 已 AC 9', /9\/9/.test(greedyText), greedyText)
 
-  // 点击知识点 → 并集筛选
+  // 点击知识点 → 其关联标签进入统一筛选
   await greedyChip.click()
   await win.waitForTimeout(1000)
   const filteredNote = await win.locator('.meta-row').innerText()
   check('点击知识点后列表刷新（出现题数）', /共 \d+ 题/.test(filteredNote), filteredNote)
+  // v1.13：合流后「已选」chips 里应出现该知识点的关联标签（不再有独立知识点筛选通道）
+  const selChips = (await win.locator('.sel-line .chip').allInnerTexts()).map((t) => t.trim())
+  check(
+    '知识点点击后「已选」条出现其关联标签（与标签共用一套筛选）',
+    selChips.length > 0,
+    selChips.join(',')
+  )
   await win.screenshot({ path: path.join(OUT, '03-knowledge-filtered.png') })
-  const clearBtn = win.locator('button', { hasText: '清空知识点' })
-  check('出现「清空知识点」按钮', (await clearBtn.count()) > 0)
+  const clearBtn = win.locator('button', { hasText: '全部清空' })
+  check('出现「全部清空」按钮', (await clearBtn.count()) > 0)
+  await clearBtn.click()
+  await win.waitForTimeout(800)
+  check('清空后「已选」条消失', (await win.locator('.sel-line .chip').count()) === 0)
 
   // 3) 学习路径：资料卡无题单
   await win.locator('.nav-item', { hasText: '学习路径' }).click()
@@ -257,6 +268,35 @@ async function main() {
   await win.screenshot({ path: path.join(OUT, '05-account-binding.png') })
   await win.screenshot({ path: path.join(OUT, '05-settings.png') })
 
+  // 4a2) 笔记只读阅读入口（v1.13）
+  await win.locator('.nav-item', { hasText: '笔记' }).click()
+  await win.waitForTimeout(1200)
+  await win.locator('button', { hasText: '新建笔记' }).click()
+  await win.waitForTimeout(800)
+  await win.locator('.title-input').fill('GUI 阅读测试笔记')
+  await win.locator('.md-input').fill('## 思路\n\n这是一段用于验证只读阅读的 Markdown。\n\n```cpp\nint main(){}\n```')
+  await win.locator('button', { hasText: '保存' }).first().click()
+  await win.waitForTimeout(1200)
+  const noteListed = await win.locator('.note-item', { hasText: 'GUI 阅读测试笔记' }).count()
+  check('笔记保存后出现在列表', noteListed > 0, `匹配 ${noteListed}`)
+  const readableEntry = await win.locator('.note-item', { hasText: 'GUI 阅读测试笔记' }).first().locator('button', { hasText: '阅读' }).count()
+  check('笔记列表项提供「阅读」入口', readableEntry > 0)
+  await win.locator('.note-item', { hasText: 'GUI 阅读测试笔记' }).first().click()
+  await win.waitForTimeout(1000)
+  const readerShown = await win.locator('.reader').count()
+  const editorShown = await win.locator('.editor').count()
+  check('点击笔记进入只读阅读视图（不进入编辑器）', readerShown > 0 && editorShown === 0, `阅读=${readerShown} 编辑器=${editorShown}`)
+  const readerHtml = await win.locator('.reader-preview').innerHTML().catch(() => '')
+  check(
+    '阅读视图渲染 Markdown（标题 + 代码块）',
+    /<h2/i.test(readerHtml) && /<pre/i.test(readerHtml),
+    readerHtml.slice(0, 120)
+  )
+  await win.screenshot({ path: path.join(OUT, '08b-note-reader.png') })
+  await win.locator('.reader-toolbar button', { hasText: '返回列表' }).click()
+  await win.waitForTimeout(600)
+  check('「返回列表」回到笔记列表', (await win.locator('.note-item').count()) > 0 && (await win.locator('.reader').count()) === 0)
+
   // 4b) 水平评估页（v1.8.4 回归）：记录历史后页面不得整页空白
   await win.locator('.nav-item', { hasText: '水平评估' }).click()
   await win.waitForTimeout(1500)
@@ -275,8 +315,8 @@ async function main() {
   // 4c) 力扣数据源（v1.9 FR-21）：源切换 + 难度下拉 + 行内中文标签
   await win.locator('.nav-item', { hasText: '题库' }).click()
   await win.waitForTimeout(1000)
-  // 先清掉前面知识点用例留下的筛选（否则力扣视图被并集标签过滤）
-  const clearKn = win.locator('button', { hasText: '清空知识点' })
+  // 先清掉前面知识点用例留下的筛选（否则力扣视图被标签过滤）
+  const clearKn = win.locator('button', { hasText: '全部清空' })
   if ((await clearKn.count()) > 0) {
     await clearKn.first().click()
     await win.waitForTimeout(900)

@@ -115,6 +115,38 @@ function startCreate(): void {
   editing.value = true
 }
 
+// v1.13：只读阅读模式（点击列表进入阅读，不再直接进入编辑）
+const reading = ref(false)
+const readingNote = ref<Note | null>(null)
+const readingHtml = ref('')
+
+/** 打开只读阅读视图（不加载编辑器、不触发自动保存） */
+async function startRead(n: Note): Promise<void> {
+  try {
+    const full = await invoke<Note>(IpcChannels.NotesGet, { id: n.id })
+    readingNote.value = full
+    readingHtml.value = md.render(full.content || '')
+    reading.value = true
+    editing.value = false
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+function closeRead(): void {
+  reading.value = false
+  readingNote.value = null
+  readingHtml.value = ''
+}
+
+/** 从阅读视图进入编辑 */
+async function editFromRead(): Promise<void> {
+  const n = readingNote.value
+  if (!n) return
+  closeRead()
+  await startEdit(n)
+}
+
 async function startEdit(n: Note): Promise<void> {
   autoCreatedId.value = null
   const full = await invoke<Note>(IpcChannels.NotesGet, { id: n.id })
@@ -293,10 +325,10 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- 笔记列表 -->
-    <div v-else-if="!editing" class="note-list">
+    <!-- 笔记列表：点击 = 只读阅读；「编辑」按钮才进入编辑器（v1.13） -->
+    <div v-else-if="!editing && !reading" class="note-list">
       <div v-if="filteredNotes.length === 0" class="empty">暂无笔记。点击「＋ 新建笔记」开始记录题解与思路。</div>
-      <div v-for="n in filteredNotes" :key="n.id" class="note-item" @click="startEdit(n)">
+      <div v-for="n in filteredNotes" :key="n.id" class="note-item" @click="startRead(n)">
         <div class="note-title">
           {{ n.title }}
           <span v-if="n.problemId" class="mini-tag mono">{{ n.problemId }}</span>
@@ -304,8 +336,27 @@ onBeforeUnmount(() => {
         <div class="note-meta">
           <span v-for="t in n.tags" :key="t" class="mini-tag">{{ t }}</span>
           <span class="dim">更新于 {{ n.updatedAt.slice(0, 16) }}</span>
+          <button class="btn xs" title="打开只读阅读视图" @click.stop="startRead(n)">阅读</button>
+          <button class="btn xs" title="进入编辑器" @click.stop="startEdit(n)">编辑</button>
           <button class="btn xs ghost danger" @click.stop="removeNote(n)">删除</button>
         </div>
+      </div>
+    </div>
+
+    <!-- 只读阅读视图（v1.13） -->
+    <div v-else-if="reading && readingNote" class="reader">
+      <div class="reader-toolbar">
+        <button class="btn ghost" @click="closeRead()">← 返回列表</button>
+        <h3 class="reader-title">{{ readingNote.title }}</h3>
+        <span v-if="readingNote.problemId" class="mini-tag mono">{{ readingNote.problemId }}</span>
+        <span v-for="t in readingNote.tags" :key="t" class="mini-tag">{{ t }}</span>
+        <div class="spacer" />
+        <span class="dim small">更新于 {{ readingNote.updatedAt.slice(0, 16) }}</span>
+        <button class="btn primary" @click="editFromRead()">✎ 编辑</button>
+      </div>
+      <div class="reader-body">
+        <div v-if="!(readingNote.content || '').trim()" class="dim">（这条笔记还没有内容，点「编辑」开始记录）</div>
+        <div v-else class="preview reader-preview" v-html="readingHtml" />
       </div>
     </div>
 
@@ -558,5 +609,41 @@ onBeforeUnmount(() => {
 }
 .preview :deep(a) {
   color: var(--primary);
+}
+/* v1.13：只读阅读视图 */
+.reader {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+  min-height: 0;
+}
+.reader-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.reader-title {
+  margin: 0;
+  font-size: 15px;
+}
+.reader-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+.reader-preview {
+  flex: 1;
+  padding: 16px 20px;
+  line-height: 1.7;
+  max-width: 900px;
+}
+.reader-preview :deep(img) {
+  max-width: 100%;
 }
 </style>

@@ -83,10 +83,7 @@ export const useProblemsStore = defineStore('problems', {
       this.selectedIds = [...set]
     },
     async load(): Promise<{ total: number; items: ProblemRow[] }> {
-      // v1.8.1：已选知识点但技能数据未就绪（深链/刷新）→ 先拉技能报告，否则 tagsAny 会为空导致筛不出题
-      if (this.knowledgeIds.length > 0 && this.skills.length === 0) {
-        await this.loadSkills()
-      }
+      // v1.13：知识点已并入标签筛选（选中节点 = 选中其标签），不再单独下发 tagsAny
       // 注意：Vue 响应式 Proxy 无法通过 Electron IPC 结构化克隆，
       // 必须显式转换为纯对象/纯数组后再发送
       const res = await invoke<{ total: number; items: ProblemRow[] }>(IpcChannels.ProblemsList, {
@@ -97,8 +94,6 @@ export const useProblemsStore = defineStore('problems', {
         ratingMin: this.filter.ratingMin ?? null,
         ratingMax: this.filter.ratingMax ?? null,
         tags: [...(this.filter.tags ?? [])],
-        // v1.8：知识点筛选 → 所选中节点的关联标签并集（OR 语义）
-        tagsAny: this.knowledgeTags(),
         keyword: this.filter.keyword ?? '',
         practiced: this.filter.practiced ?? 'all',
         sortBy: this.filter.sortBy ?? 'rating',
@@ -108,7 +103,7 @@ export const useProblemsStore = defineStore('problems', {
       this.items = res.items
       return res
     },
-    /** 选中知识点对应的标签并集（去重、小写化去重保留原样） */
+    /** 选中知识点对应的标签并集（供外部预览/调试；实际筛选走 filter.tags） */
     knowledgeTags(): string[] {
       if (this.knowledgeIds.length === 0) return []
       const nodes = this.skills.filter((n) => this.knowledgeIds.includes(n.id))
@@ -129,34 +124,62 @@ export const useProblemsStore = defineStore('problems', {
       }
     },
     async toggleKnowledge(id: string): Promise<void> {
-      const set = new Set(this.knowledgeIds)
-      if (set.has(id)) set.delete(id)
-      else set.add(id)
-      this.knowledgeIds = [...set]
-      this.filter = { ...this.filter, page: 1 }
+      // v1.13：知识点与标签合流 —— 选中节点 = 选中其关联标签
+      const node = this.nodeById(id)
+      if (!node) return
+      const tags = new Set(this.filter.tags ?? [])
+      const allOn = node.tags.every((t) => tags.has(t))
+      for (const t of node.tags) {
+        if (allOn) tags.delete(t)
+        else tags.add(t)
+      }
+      this.knowledgeIds = allOn
+        ? this.knowledgeIds.filter((x) => x !== id)
+        : [...new Set([...this.knowledgeIds, id])]
+      this.filter = { ...this.filter, tags: [...tags], page: 1 }
       try {
-        if (this.knowledgeIds.length > 0 && this.skills.length === 0) await this.loadSkills()
         await this.load()
       } catch {
         // 查询失败时保留选中状态，页面其它错误提示由调用方处理
       }
     },
+    /** 知识点选中态由「关联标签是否全部被选中」派生（与标签筛选共用一套状态） */
+    async syncKnowledgeFromTags(): Promise<void> {
+      if (this.knowledgeIds.length === 0) return
+      const tags = new Set(this.filter.tags ?? [])
+      const kept = this.knowledgeIds.filter((id) => {
+        const n = this.nodeById(id)
+        return !!n && n.tags.length > 0 && n.tags.every((t) => tags.has(t))
+      })
+      // 只校正派生状态，筛选请求已由调用方发起（避免重复 load）
+      if (kept.length !== this.knowledgeIds.length) this.knowledgeIds = kept
+    },
     async clearKnowledge(): Promise<void> {
+      const tags = new Set(this.filter.tags ?? [])
+      for (const id of this.knowledgeIds) {
+        const n = this.nodeById(id)
+        if (!n) continue
+        for (const t of n.tags) tags.delete(t)
+      }
       this.knowledgeIds = []
-      this.filter = { ...this.filter, page: 1 }
+      this.filter = { ...this.filter, tags: [...tags], page: 1 }
       try {
         await this.load()
       } catch {
         // 同上
       }
     },
-    /** v1.8.1：应用外部传入的知识点选择（技能树跳转），并请求展开面板 */
+    /** v1.8.1：应用外部传入的知识点选择（技能树跳转）→ 转成标签并切到知识点 Tab */
     async applyKnowledge(ids: string[]): Promise<void> {
-      this.knowledgeIds = [...ids]
       this.knowledgeOpenRequested = true
       this.filter = { ...this.filter, page: 1 }
       try {
         if (this.skills.length === 0) await this.loadSkills()
+        const nodes = this.skills.filter((n) => ids.includes(n.id))
+        const tags = new Set<string>()
+        for (const n of nodes) for (const t of n.tags) tags.add(t)
+        this.knowledgeIds = nodes.map((n) => n.id)
+        this.filter = { ...this.filter, tags: [...tags] }
         await this.load()
       } catch {
         // 查询失败保留选择

@@ -41,14 +41,22 @@ const importing = ref(false)
 /** 标签按大类分组（FR-8.8） */
 const groupedTags = computed(() => groupTagsByCategory(store.allTags))
 
-/** 横向布局：当前激活的分类 Tab */
+/**
+ * v1.13：知识点不再是一套独立的「标签并集筛选器」，而是标签分栏里的第一个 Tab。
+ * 选中知识点 = 选中该节点关联的全部标签（与标签筛选同一套状态 store.filter.tags），
+ * 从而与原有标签功能合为一体：ORM 语义一致、已选 chips 统一、不再出现「两套筛选」。
+ */
+const KNOWLEDGE_CAT = '知识点'
+const tagCategoryNames = computed(() => groupedTags.value.map((g) => g.category))
+
+/** 横向布局：当前激活的分类 Tab（含「知识点」虚拟分类） */
 const activeTagCat = ref('')
 watch(
-  () => groupedTags.value,
-  (groups) => {
-    if (groups.length === 0) return
-    const names = groups.map((g) => g.category)
-    if (!names.includes(activeTagCat.value)) activeTagCat.value = names[0]
+  () => [tagCategoryNames.value, store.skills.length] as const,
+  ([names, skillCount]) => {
+    const all = skillCount > 0 ? [KNOWLEDGE_CAT, ...names] : [...names]
+    if (all.length === 0) return
+    if (!all.includes(activeTagCat.value)) activeTagCat.value = all[0]
   },
   { immediate: true }
 )
@@ -63,6 +71,9 @@ function groupSelectedCount(tags: string[]): number {
   const selectedTagsSet = new Set(store.filter.tags ?? [])
   return tags.filter((t) => selectedTagsSet.has(t)).length
 }
+
+/** 知识点 Tab 上的已选数量（按节点计） */
+const knTabCount = computed(() => store.knowledgeIds.length)
 
 // 记录练习表单
 // v1.8.1：耗时默认为空（此前默认 0，输入时要先删掉 0，易误记）
@@ -157,6 +168,30 @@ function toggleTag(tag: string): void {
   const tags = store.filter.tags ?? []
   const next = tags.includes(tag) ? tags.filter((t) => t !== tag) : [...tags, tag]
   onFilter({ tags: next })
+  // v1.13：标签可能是知识点派生出来的 → 筛选提交后再校正选中知识点
+  void store.syncKnowledgeFromTags()
+}
+
+/** v1.13：一键清空全部标签（含知识点派生出的标签） */
+function clearAllTagFilters(): void {
+  store.knowledgeIds = []
+  onFilter({ tags: [] })
+}
+
+/** v1.13：知识点 Tab 内点击节点 = 选中/取消该节点关联的全部标签 */
+function toggleKnowledgeNode(n: SkillNodeReport): void {
+  if (!isFilterable(n)) return
+  const tags = new Set(store.filter.tags ?? [])
+  const allOn = n.tags.every((t) => tags.has(t))
+  for (const t of n.tags) {
+    if (allOn) tags.delete(t)
+    else tags.add(t)
+  }
+  const ids = new Set(store.knowledgeIds)
+  if (allOn) ids.delete(n.id)
+  else ids.add(n.id)
+  store.knowledgeIds = [...ids]
+  onFilter({ tags: [...tags] })
 }
 
 function errMsg(e: unknown): string {
@@ -351,13 +386,12 @@ function nodeSourceHint(n: SkillNodeReport): string {
   return hasCf ? '标签为 CF 侧：主要筛出 Codeforces 题' : '标签为洛谷侧：主要筛出洛谷题'
 }
 
-const knowledgeOpen = ref(false)
-// v1.8.1：技能树跳转过来时自动展开知识点面板
+// v1.8.1 → v1.13：技能树跳转过来时直接切到「知识点」标签页（面板已并入标签分栏）
 watch(
   () => store.knowledgeOpenRequested,
   (v) => {
     if (v) {
-      knowledgeOpen.value = true
+      activeTagCat.value = KNOWLEDGE_CAT
       store.knowledgeOpenRequested = false
     }
   },
@@ -396,8 +430,12 @@ function tierDot(tier: string): string {
 function tierText(tier: string): string {
   return TIER_TEXT[tier] ?? tier
 }
+/** v1.13：节点选中态 = 其全部关联标签都被选中（与标签筛选同一套状态源） */
 function isKnowledgeOn(id: string): boolean {
-  return store.knowledgeIds.includes(id)
+  const n = store.skills.find((x) => x.id === id)
+  if (!n || n.tags.length === 0) return false
+  const tags = new Set(store.filter.tags ?? [])
+  return n.tags.every((t) => tags.has(t))
 }
 
 async function openStatement(problemId?: string): Promise<void> {
@@ -431,8 +469,8 @@ onMounted(() => {
     .map((x) => x.trim())
     .filter(Boolean)
   if (knowledgeIds.length > 0) {
-    // 有深链：直接按所选知识点加载（避免先发一次空筛选请求）
-    knowledgeOpen.value = true
+    // 有深链：切到知识点标签页并按其关联标签加载（避免先发一次空筛选请求）
+    activeTagCat.value = KNOWLEDGE_CAT
     store
       .applyKnowledge(knowledgeIds)
       .catch((e: unknown) => toast.error(`题库加载失败: ${errMsg(e)}`))
@@ -569,27 +607,53 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- v1.8 知识点筛选（独立 UI：分层标签 + 掌握色点 + 题数，多选并集） -->
-      <div class="kn-panel">
-        <div class="kn-head">
-          <button class="kn-toggle" @click="knowledgeOpen = !knowledgeOpen">
-            {{ knowledgeOpen ? '▾' : '▸' }} 知识点筛选
+      <!-- v1.13：知识点并入标签分栏（第一个 Tab），与原有标签共用一套筛选与「已选」chips -->
+      <div class="tag-horz">
+        <div class="tag-tabs">
+          <button
+            v-if="store.skills.length > 0"
+            class="seg-tab"
+            :class="{ on: activeTagCat === KNOWLEDGE_CAT }"
+            :title="'知识点 = 一组标签：选中知识点会自动选中其关联标签'"
+            @click="activeTagCat = KNOWLEDGE_CAT"
+          >
+            {{ KNOWLEDGE_CAT }}
+            <span v-if="knTabCount > 0" class="sel-count">{{ knTabCount }}</span>
           </button>
-          <span class="dim small">
-            {{ knowledgeSelectedCount ? `已选 ${knowledgeSelectedCount} 个知识点（并集筛选）` : '按技能树知识点筛题（含掌握度与练习题数）' }}
-          </span>
-          <span v-if="store.skills.length" class="kn-summary dim small">
+          <button
+            v-for="g in groupedTags"
+            :key="g.category"
+            class="seg-tab"
+            :class="{ on: activeTagCat === g.category }"
+            @click="activeTagCat = g.category"
+          >
+            {{ g.category }}
+            <span v-if="groupSelectedCount(g.tags) > 0" class="sel-count">{{ groupSelectedCount(g.tags) }}</span>
+          </button>
+        </div>
+
+        <div v-if="selectedTags.length" class="sel-line">
+          <span class="dim small">已选：</span>
+          <button
+            v-for="tag in selectedTags"
+            :key="tag"
+            class="chip on"
+            @click="toggleTag(tag)"
+          >
+            {{ tag }} ✕
+          </button>
+          <button class="btn ghost xs" @click="clearAllTagFilters()">全部清空</button>
+        </div>
+
+        <!-- 知识点 Tab：按层分组的节点（保留掌握度色点与练习题数） -->
+        <div v-if="activeTagCat === KNOWLEDGE_CAT" class="kn-body">
+          <div v-if="store.skills.length === 0" class="dim small">掌握情况加载中…（技能树统计未就绪）</div>
+          <div v-else class="kn-summary-line dim small">
+            <span class="kn-sum-item">已选 {{ knowledgeSelectedCount }} 个知识点</span>
             <span v-for="s in knowledgeSummary" :key="s.tier" class="kn-sum-item">
               <span class="dot" :style="{ background: tierDot(s.tier) }" />{{ s.label }} {{ s.count }}
             </span>
-          </span>
-          <span class="grow" />
-          <button v-if="knowledgeSelectedCount" class="btn ghost xs" @click="store.clearKnowledge()">
-            清空知识点
-          </button>
-        </div>
-        <div v-if="knowledgeOpen" class="kn-body">
-          <div v-if="store.skills.length === 0" class="dim small">掌握情况加载中…（技能树统计未就绪）</div>
+          </div>
           <div v-for="g in knowledgeGroups" :key="g.layer" class="kn-group">
             <span class="kn-layer">L{{ g.layer }} · {{ g.name }}</span>
             <div class="kn-chips">
@@ -603,8 +667,8 @@ onMounted(() => {
                   disabled: !isFilterable(n)
                 }"
                 :disabled="!isFilterable(n)"
-                :title="`${n.name}：${tierText(n.tier)} · 已练习 ${n.stats.attempted} 题 / 已 AC ${n.stats.acProblems} 题 · ${nodeSourceHint(n)}`"
-                @click="isFilterable(n) && store.toggleKnowledge(n.id)"
+                :title="`${n.name}：${tierText(n.tier)} · 已练习 ${n.stats.attempted} 题 / 已 AC ${n.stats.acProblems} 题 · 关联标签 ${n.tags.length} 个 · ${nodeSourceHint(n)}`"
+                @click="toggleKnowledgeNode(n)"
               >
                 <span class="dot" :style="{ background: tierDot(n.tier) }" />
                 <span class="kn-name">{{ n.name }}</span>
@@ -613,38 +677,13 @@ onMounted(() => {
             </div>
           </div>
           <p class="dim small kn-tip">
-            数字含义：已练习题数 / 已 AC 题数；色点=掌握度（灰未开始 · 青初学 · 蓝练习中 · 绿基本掌握 · 金熟练）。
-            多选按知识点关联标签并集筛选（题号标签同时匹配 Codeforces 与洛谷）。
+            知识点与上方标签是同一套筛选：点节点等于勾选它关联的全部标签（再点取消）。数字含义：已练习题数 / 已 AC 题数；
+            色点=掌握度（灰未开始 · 青初学 · 蓝练习中 · 绿基本掌握 · 金熟练）。
           </p>
         </div>
-      </div>
 
-      <!-- 标签选择（FR-8.8 横向大类 Tab + 组内多选） -->
-      <div v-if="groupedTags.length" class="tag-horz">
-        <div class="tag-tabs">
-          <button
-            v-for="g in groupedTags"
-            :key="g.category"
-            class="seg-tab"
-            :class="{ on: activeTagCat === g.category }"
-            @click="activeTagCat = g.category"
-          >
-            {{ g.category }}
-            <span v-if="groupSelectedCount(g.tags) > 0" class="sel-count">{{ groupSelectedCount(g.tags) }}</span>
-          </button>
-        </div>
-        <div v-if="selectedTags.length" class="sel-line">
-          <span class="dim small">已选：</span>
-          <button
-            v-for="tag in selectedTags"
-            :key="tag"
-            class="chip on"
-            @click="toggleTag(tag)"
-          >
-            {{ tag }} ✕
-          </button>
-        </div>
-        <div class="tag-row">
+        <!-- 普通标签分组 -->
+        <div v-else class="tag-row">
           <button
             v-for="tag in activeGroupTags"
             :key="tag"
@@ -951,6 +990,15 @@ onMounted(() => {
 }
 .grow {
   flex: 1;
+}
+.kn-summary-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 4px;
 }
 .kn-body {
   display: flex;
