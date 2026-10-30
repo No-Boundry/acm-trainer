@@ -616,3 +616,115 @@ export interface SchedulePlanResult {
   /** 超出目标日期而未被排入的题数 */
   overflow: number
 }
+
+// ============ v1.14 首页推荐习题（FR-31~FR-33） ============
+
+/** 题目练习状态：未练习 / 练习中（有记录但未 AC）/ 已 AC */
+export type PracticeState = 'undone' | 'trying' | 'done'
+
+/**
+ * 标签/知识点使用情况（v1.14 FR-32「显示已练习标签」）。
+ * 以「知识点关联标签」为键聚合练习记录；未练习的标签也返回（count=0），便于标注。
+ */
+export interface TagUsage {
+  tag: string
+  /** 有练习记录的题数 */
+  attempted: number
+  /** 至少 AC 一次的题数 */
+  acProblems: number
+  /** 最近练习时间（本地 'YYYY-MM-DD HH:mm'，无则 null） */
+  lastAt: string | null
+  /** 最近练习距今天数（无则 null） */
+  lastActiveDays: number | null
+  /** 题库中带该标签的题数 */
+  totalProblems: number
+  /** 练习进度 0..1（acProblems / totalProblems） */
+  progress: number
+}
+
+/**
+ * 首页「推荐习题」条目的推荐理由（用于 UI 说明「为什么推它」）。
+ */
+export interface RecommendReason {
+  kind:
+    | 'due-review' // 遗忘曲线：该题已到复习点
+    | 'stale' // 遗忘曲线：很久没碰
+    | 'weak' // 正确率偏低
+    | 'learning-node' // 练习中知识点的题
+    | 'new' // 全新题目
+    | 'resume' // 之前做过但没 AC
+  text: string
+}
+
+/** 推荐习题条目 */
+export interface RecommendedProblem {
+  problem: ProblemRow
+  state: PracticeState
+  reason: RecommendReason
+  /** 遗忘曲线紧急度（越大越该复习；仅已练习部分有意义） */
+  urgency: number
+  /** 距上次练习天数（未练习为 null） */
+  daysSince: number | null
+  /** 命中的知识点（用于展示色点） */
+  knowledgeIds: string[]
+  /** 所属题单（若已在题单中） */
+  listNames: string[]
+  /** 是否已到期复习（题单复习档位） */
+  dueReview: boolean
+}
+
+/** 推荐方式（已练习部分） */
+export type PracticedOrder = 'forgetting' | 'recent' | 'stale' | 'weak' | 'difficulty'
+
+/** 推荐方式（未练习部分） */
+export type FreshOrder = 'learning-node' | 'weak-node' | 'easier' | 'harder' | 'popular' | 'random'
+
+/** 已练习部分排序方式的中文标签（设置页下拉与说明共用） */
+export const PRACTICED_ORDER_LABELS: Record<PracticedOrder, string> = {
+  forgetting: '遗忘曲线（默认，按记忆衰减度）',
+  recent: '最近练过的优先',
+  stale: '最久没碰的优先',
+  weak: '正确率最低的优先',
+  difficulty: '难度从低到高'
+}
+
+/** 未练习部分推荐方式的中文标签 */
+export const FRESH_ORDER_LABELS: Record<FreshOrder, string> = {
+  'learning-node': '「练习中」知识点优先 · AC 数升序（默认）',
+  'weak-node': '最薄弱知识点优先（正确率最低）',
+  easier: '难度从低到高',
+  harder: '难度从高到低',
+  popular: '全球 AC 数最多',
+  random: '随机'
+}
+
+export interface RecommendInput {
+  /** 已练习部分条数（默认 8） */
+  practicedLimit?: number
+  /** 未练习部分条数（默认 8） */
+  freshLimit?: number
+  /** 已练习部分的排序方式（缺省走设置 recommendOrderPracticed） */
+  practicedOrder?: PracticedOrder
+  /** 未练习部分的推荐方式（缺省走设置 recommendOrderFresh） */
+  freshOrder?: FreshOrder
+  /** 知识点标签筛选（节点 id 列表；空 = 不过滤） */
+  knowledgeIds?: string[]
+  /** v1.14 FR-32：手动选取的标签（与 knowledgeIds 取并集） */
+  filterTags?: string[]
+  /** 难度上限（CF rating 口径；null = 不过滤） */
+  ratingMax?: number | null
+  /** 数据源过滤（null / 'all' = 全部） */
+  source?: 'all' | ProblemSource
+}
+
+export interface RecommendResult {
+  practiced: RecommendedProblem[]
+  fresh: RecommendedProblem[]
+  /** 本次生效的推荐方式（便于 UI 回显「可在设置中更改」） */
+  practicedOrder: PracticedOrder
+  freshOrder: FreshOrder
+  /** 各类候选总数（未受 limit 截断） */
+  totals: { practiced: number; fresh: number }
+  /** 知识点筛选命中的标签 */
+  filterTags: string[]
+}

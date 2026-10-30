@@ -438,7 +438,7 @@ async function main() {
   const nodeBtn = win.locator('.go-node-problems')
   check('节点详情面板出现「去题库练习该知识点」按钮', (await nodeBtn.count()) > 0)
   const nodeBtnText = ((await nodeBtn.first().innerText()) || '').replace(/\s+/g, ' ')
-  check('按钮显示该节点的关联标签数', /个关联标签/.test(nodeBtnText), nodeBtnText)
+  check('按钮显示该节点的关联标签数', /选中 \d+ 个标签/.test(nodeBtnText), nodeBtnText)
   await nodeBtn.first().click()
   await win.waitForTimeout(1500)
   check('跳转到题库并只选中该知识点', /knowledge=dp/.test(win.url()), win.url())
@@ -501,6 +501,108 @@ async function main() {
     check('技能树存在「只显示赛道节点」开关', false, '未找到 .only-track input')
   }
   await win.screenshot({ path: path.join(OUT, '12-skill-track.png') })
+
+  // 4f-2) 知识点标签手动选取 + 已练习可见化（v1.14 FR-32）
+  await win.locator('.nav-item', { hasText: '学习路径' }).click()
+  await win.waitForTimeout(1500)
+  // 先确保「全部知识点」赛道（不筛选），否则节点可能处于 v-show 隐藏状态
+  const allTrack = win.locator('.track-row .seg').first()
+  if ((await allTrack.count()) > 0) await allTrack.click()
+  await win.waitForTimeout(600)
+  const dsuCard = win.locator('.node-card[data-node="dsu"]')
+  await dsuCard.scrollIntoViewIfNeeded()
+  await dsuCard.click()
+  await win.waitForTimeout(1200)
+  const dsuDetailText = (await win.locator('.detail').innerText().catch(() => '')).replace(/\s+/g, ' ')
+  const pickChips = await win.locator('.tag-pick').count()
+  check('知识点详情面板提供可点选的关联标签', pickChips > 0, `标签数=${pickChips} 面板=${dsuDetailText.slice(0, 100)}`)
+  const dsuChip = win.locator('.tag-pick[data-tag="dsu"]')
+  const dsuChipTitle = await dsuChip.first().getAttribute('title')
+  check(
+    '标签显示题库题数与已练数（「并查集」的 dsu 标签在库中确有题目）',
+    /题库 \d+ 题/.test(dsuChipTitle || ''),
+    String(dsuChipTitle)
+  )
+  const dsuChipText = ((await dsuChip.first().innerText()) || '').replace(/\s+/g, ' ')
+  check('已 AC 的标签显示 ✓ 计数角标', /✓\d+/.test(dsuChipText) || !/✓/.test(dsuChipText), dsuChipText)
+
+  // 手动只选 dsu 一个标签（先全选默认，再取消「并查集」）
+  await win.locator('.detail button', { hasText: '全选默认标签' }).click()
+  await win.waitForTimeout(400)
+  const onAfterAll = await win.locator('.tag-pick.on').count()
+  check('「全选默认标签」选中该节点全部默认标签', onAfterAll >= 2, `选中=${onAfterAll}`)
+  await win.locator('.detail .tag-pick[data-tag="并查集"]').first().click()
+  await win.waitForTimeout(400)
+  const onAfterUnpick = await win.locator('.tag-pick.on').count()
+  check('可手动取消单个标签', onAfterUnpick === onAfterAll - 1, `剩余=${onAfterUnpick}`)
+  const pickBtn = win.locator('.detail-actions button', { hasText: '去题库练习' })
+  const pickBtnText = ((await pickBtn.first().innerText()) || '').replace(/\s+/g, ' ')
+  check('按钮显示手动选中的标签数', /选中 \d+ 个标签/.test(pickBtnText), pickBtnText)
+  await pickBtn.first().click()
+  await win.waitForTimeout(1600)
+  check('跳题库时携带手动选中的标签', /tags=/.test(win.url()), win.url())
+  const selTagChips = await win.locator('.sel-line .chip').allInnerTexts()
+  check(
+    '题库「已选」条只显示手动选取的标签',
+    selTagChips.length >= 1 && !selTagChips.join(',').includes('并查集'),
+    selTagChips.join(',')
+  )
+  await win.screenshot({ path: path.join(OUT, '11b-skill-tag-pick.png') })
+
+  // 4f-3) 首页：已练习标签 + 推荐习题（v1.14 FR-31~FR-33）
+  await win.locator('.nav-item', { hasText: '首页' }).click()
+  await win.waitForTimeout(2000)
+  const recPanel = win.locator('[data-panel="recommend"]')
+  check('首页出现「推荐习题」面板', (await recPanel.count()) > 0)
+  check('推荐分「已练习 / 未练习」两栏', (await win.locator('[data-rec="practiced"]').count()) > 0 && (await win.locator('[data-rec="fresh"]').count()) > 0)
+  const recText = ((await recPanel.first().innerText()) || '').replace(/\s+/g, ' ')
+  check('已练习栏标注遗忘曲线排序', /遗忘曲线/.test(recText), recText.slice(0, 160))
+  check('未练习栏标注难度/知识点排序口径', /知识点优先|难度/.test(recText), recText.slice(0, 240))
+  const practicedItems = await win.locator('[data-rec="practiced"] .rec-item').count()
+  const freshItems = await win.locator('[data-rec="fresh"] .rec-item').count()
+  check('推荐列表有实际条目', practicedItems + freshItems > 0, `已练习=${practicedItems} 未练习=${freshItems}`)
+  const tagPanel = await win.locator('.tag-panel').count()
+  const tagChips = await win.locator('.tag-chip').count()
+  check('首页出现「已练习标签」面板（有已 AC 标签时）', tagPanel > 0 && tagChips > 0, `面板=${tagPanel} 标签=${tagChips}`)
+  if (tagChips > 0) {
+    const chipTitle = await win.locator('.tag-chip').first().getAttribute('title')
+    check('标签角标显示 已AC/题库 与提示', /题库 \d+ 题/.test(chipTitle || ''), String(chipTitle))
+    await win.locator('.tag-chip').first().click()
+    await win.waitForTimeout(1400)
+    const hint = (await win.locator('.filter-hint').innerText().catch(() => '')).replace(/\s+/g, ' ')
+    check('点标签后出现筛选提示', /筛选：/.test(hint), hint)
+    await win.locator('button', { hasText: '清空筛选' }).first().click()
+    await win.waitForTimeout(1200)
+    check('「清空筛选」后提示消失', (await win.locator('.filter-hint').count()) === 0)
+  }
+  await win.screenshot({ path: path.join(OUT, '15-dashboard-recommend.png') })
+
+  // 设置页：推荐习题设置项（v1.14 FR-33）
+  await win.locator('.nav-item', { hasText: '设置' }).click()
+  await win.waitForTimeout(1000)
+  const recPanelSettings = win.locator('[data-panel="recommend"]')
+  check('设置页出现「首页推荐习题」面板', (await recPanelSettings.count()) > 0)
+  if ((await recPanelSettings.count()) > 0) {
+    const practicedOpts = await win.locator('[data-rec-practiced] option').allInnerTexts()
+    const freshOpts = await win.locator('[data-rec-fresh] option').allInnerTexts()
+    check('可更改「已练习」推荐方式（5 种）', practicedOpts.length >= 5, practicedOpts.join('/'))
+    check('可更改「未练习」推荐方式（6 种）', freshOpts.length >= 6, freshOpts.join('/'))
+    const freshValue = freshOpts.find((o) => o.includes('难度从低到高'))
+    if (freshValue) {
+      await win.locator('[data-rec-fresh]').selectOption({ label: freshValue })
+      await win.waitForTimeout(1500)
+      const savedFresh = await win.locator('[data-rec-fresh]').inputValue()
+      check('设置项已保存（recommendOrderFresh）', savedFresh === 'easier', `当前值=${savedFresh}`)
+      await win.locator('.nav-item', { hasText: '首页' }).click()
+      await win.waitForTimeout(2500)
+      const freshHead = ((await win.locator('[data-rec="fresh"] header').innerText()) || '').replace(/\s+/g, ' ')
+      check('改动推荐方式后首页未练习栏口径随之变化', /难度/.test(freshHead), freshHead)
+      await win.locator('.nav-item', { hasText: '设置' }).click()
+      await win.waitForTimeout(900)
+      await win.locator('[data-rec-fresh]').selectOption({ label: freshOpts[0] })
+      await win.waitForTimeout(1200)
+    }
+  }
 
   // 4h) 题单 / 今日复习 / 训练计划（v1.10 FR-27~FR-29）
   await win.locator('.nav-item', { hasText: '题单/计划' }).click()

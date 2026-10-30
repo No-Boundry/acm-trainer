@@ -4,6 +4,7 @@ import { invoke } from '@/api/ipc'
 import { useToast } from '@/composables/useToast'
 import { useUserStore } from '@/stores/user'
 import { IpcChannels } from '@shared/channels'
+import { FRESH_ORDER_LABELS, PRACTICED_ORDER_LABELS } from '@shared/types'
 import { useRoute } from 'vue-router'
 
 interface ExportResult {
@@ -83,6 +84,11 @@ async function set(key: string, value: string): Promise<void> {
   } finally {
     saving.value = false
   }
+}
+
+function setRecommendLimit(key: string, raw: string): void {
+  const n = Math.max(1, Math.min(30, Math.round(Number(raw) || 8)))
+  void set(key, String(n))
 }
 
 function saveWeights(): void {
@@ -450,6 +456,75 @@ onMounted(() => {
           @change="setAutoSaveMs(($event.target as HTMLInputElement).value)"
         />
       </label>
+    </div>
+
+    <!-- 首页推荐习题（v1.14 FR-33） -->
+    <div class="panel" data-panel="recommend">
+      <h3>首页推荐习题</h3>
+      <label class="row">
+        <span class="row-label">「已练习」部分排序方式</span>
+        <select
+          class="select"
+          data-rec-practiced
+          :disabled="!loaded"
+          :value="settings.recommendOrderPracticed ?? 'forgetting'"
+          @change="set('recommendOrderPracticed', ($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="(label, key) in PRACTICED_ORDER_LABELS" :key="key" :value="key">{{ label }}</option>
+        </select>
+      </label>
+      <label class="row">
+        <span class="row-label">「未练习」部分推荐方式</span>
+        <select
+          class="select"
+          data-rec-fresh
+          :disabled="!loaded"
+          :value="settings.recommendOrderFresh ?? 'learning-node'"
+          @change="set('recommendOrderFresh', ($event.target as HTMLSelectElement).value)"
+        >
+          <option v-for="(label, key) in FRESH_ORDER_LABELS" :key="key" :value="key">{{ label }}</option>
+        </select>
+      </label>
+      <label class="row">
+        <span class="row-label">每部分展示条数（1–30）</span>
+        <span class="rec-limits">
+          <input
+            class="input w-80"
+            type="number"
+            min="1"
+            max="30"
+            data-rec-practiced-limit
+            :disabled="!loaded"
+            :value="settings.recommendPracticedLimit ?? '8'"
+            @change="setRecommendLimit('recommendPracticedLimit', ($event.target as HTMLInputElement).value)"
+          />
+          <span class="dim">/</span>
+          <input
+            class="input w-80"
+            type="number"
+            min="1"
+            max="30"
+            data-rec-fresh-limit
+            :disabled="!loaded"
+            :value="settings.recommendFreshLimit ?? '8'"
+            @change="setRecommendLimit('recommendFreshLimit', ($event.target as HTMLInputElement).value)"
+          />
+        </span>
+      </label>
+      <label class="row">
+        <span class="row-label">首页显示「已练习标签」栏</span>
+        <input
+          type="checkbox"
+          data-rec-show-tags
+          :disabled="!loaded"
+          :checked="settings.recommendShowTags !== 'false'"
+          @change="set('recommendShowTags', ($event.target as HTMLInputElement).checked ? 'true' : 'false')"
+        />
+      </label>
+      <p class="hint dim small">
+        「已练习」按遗忘曲线（记忆衰减度）排序：越接近遗忘的题越靠前，到期复习的题置顶；
+        「未练习」默认优先推荐「练习中」知识点下的题目，并按 AC 数升序（AC 数少 = 更值得练）。
+      </p>
     </div>
 
     <!-- 个人资料（v1.4） -->

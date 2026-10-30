@@ -44,5 +44,12 @@ export const SETTING_DEFAULTS: Record<string, string> = {
   autoSyncEnabled: 'true',
   cfHandle: '',
   luoguUid: '',
-  leetcodeUsername: ''
+  leetcodeUsername: '',
+  // v1.14 FR-33：首页推荐习题的排序/推荐方式（可在设置中更改）
+  recommendOrderPracticed: 'forgetting',
+  recommendOrderFresh: 'learning-node',
+  recommendPracticedLimit: '8',
+  recommendFreshLimit: '8',
+  /** 首页推荐是否显示「已练习标签」栏 */
+  recommendShowTags: 'true'
 }

@@ -327,4 +327,44 @@ export class ListsRepo {
       problem: (byId.get(r.problemId) ?? null) as ProblemRow | null
     }))
   }
+
+  /**
+   * v1.14 FR-31：题目 → 所属题单名列表（首页推荐里标注「已在题单 X 中」）。
+   * 单次查询，返回 Map 便于 O(1) 查；未加入任何题单的题不在 Map 中。
+   */
+  listNamesByProblem(): Map<string, string[]> {
+    const rows = this.db
+      .prepare(
+        `SELECT i.problem_id AS problemId, l.name AS listName
+           FROM problem_list_items i
+           JOIN problem_lists l ON l.id = i.list_id
+          ORDER BY l.id, i.position`
+      )
+      .all() as { problemId: string; listName: string }[]
+    const out = new Map<string, string[]>()
+    for (const r of rows) {
+      const arr = out.get(r.problemId)
+      if (arr) {
+        if (!arr.includes(r.listName)) arr.push(r.listName)
+      } else {
+        out.set(r.problemId, [r.listName])
+      }
+    }
+    return out
+  }
+
+  /** v1.14 FR-31：全部条目的复习状态（用于在首页推荐里标记「复习到期」并优先展示） */
+  reviewEntries(): {
+    problemId: string
+    reviewStage: number
+    reviewDue: string | null
+  }[] {
+    return this.db
+      .prepare(
+        `SELECT problem_id AS problemId, review_stage AS reviewStage, review_due AS reviewDue
+           FROM problem_list_items
+          WHERE review_stage > 0`
+      )
+      .all() as { problemId: string; reviewStage: number; reviewDue: string | null }[]
+  }
 }

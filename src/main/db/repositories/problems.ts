@@ -4,7 +4,8 @@ import type {
   ProblemListResult,
   ProblemRow,
   ProblemSource,
-  ProblemUpsertInput
+  ProblemUpsertInput,
+  TagUsage
 } from '@shared/types'
 
 interface ProblemRowRaw {
@@ -346,6 +347,54 @@ export class ProblemsRepo {
   allTags(): string[] {
     const rows = this.db.prepare('SELECT name FROM tags ORDER BY name').all() as { name: string }[]
     return rows.map((r) => r.name)
+  }
+
+  /**
+   * v1.14 FR-32：标签使用情况（题库页/技能树「显示已练习标签」）。
+   *
+   * 单次 SQL 聚合：标签 × 题目 × 练习记录。
+   * - attempted：有练习记录的题数（去重）
+   * - acProblems：至少一次 AC 的去重题数
+   * - lastAt：最近一次练习时间
+   * - totalProblems：题库中带该标签的题数（含未练习）
+   * @param tagFilter 仅统计这些标签（不传 = 全部）
+   */
+  tagUsage(tagFilter?: string[]): TagUsage[] {
+    const where = tagFilter && tagFilter.length > 0 ? `WHERE t.name IN (${tagFilter.map(() => '?').join(', ')})` : ''
+    const rows = this.db
+      .prepare(
+        `SELECT t.name AS tag,
+                COUNT(DISTINCT p.id) AS totalProblems,
+                COUNT(DISTINCT CASE WHEN r.problem_id IS NOT NULL THEN p.id END) AS attempted,
+                COUNT(DISTINCT CASE WHEN r.status = 'AC' THEN p.id END) AS acProblems,
+                MAX(r.created_at) AS lastAt
+           FROM tags t
+           JOIN problem_tags pt ON pt.tag_id = t.id
+           JOIN problems p ON p.id = pt.problem_id
+           LEFT JOIN practice_records r ON r.problem_id = p.id
+           ${where}
+          GROUP BY t.id`
+      )
+      .all(...(tagFilter ?? [])) as {
+      tag: string
+      totalProblems: number
+      attempted: number
+      acProblems: number
+      lastAt: string | null
+    }[]
+    const now = Date.now()
+    return rows.map((r) => ({
+      tag: r.tag,
+      attempted: r.attempted,
+      acProblems: r.acProblems,
+      lastAt: r.lastAt,
+      lastActiveDays:
+        r.lastAt != null
+          ? Math.max(0, Math.floor((now - new Date(r.lastAt.replace(' ', 'T')).getTime()) / 86400000))
+          : null,
+      totalProblems: r.totalProblems,
+      progress: r.totalProblems > 0 ? r.acProblems / r.totalProblems : 0
+    }))
   }
 
   count(source?: ProblemSource): number {

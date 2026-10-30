@@ -9,7 +9,7 @@ import { IpcChannels } from '@shared/channels'
 import { LAYER_NAMES } from '@shared/skill-tree'
 import { SKILL_TRACKS, SKILL_TRACK_MAP, type TrackProgress } from '@shared/skill-tracks'
 import { MASTERY_TIER_META, MASTERY_TIER_ORDER } from '@shared/types'
-import type { MasteryTier, SkillNodeReport, SkillReport } from '@shared/types'
+import type { MasteryTier, SkillNodeReport, SkillReport, TagUsage } from '@shared/types'
 
 /** v1.10 FR-26：赛道进度随 skill:get 一起下发 */
 interface ReportWithTracks extends SkillReport {
@@ -142,6 +142,76 @@ const nodeById = computed(() => {
 })
 
 const selectedNode = computed(() => (selectedId.value ? nodeById.value.get(selectedId.value) ?? null : null))
+
+/**
+ * v1.14 FR-32：手动选取关联标签跳转题库。
+ * 标签使用情况（tagUsage）用于在详情面板显示「已练 / 题库题数」，并标出题库里没有的标签。
+ */
+const tagUsage = ref<TagUsage[]>([])
+const usageByTag = computed(() => new Map(tagUsage.value.map((u) => [u.tag, u])))
+/** 当前详情面板手动选取的标签（默认 = 该节点的全部关联标签） */
+const pickedTags = ref<string[]>([])
+
+function togglePick(tag: string): void {
+  const i = pickedTags.value.indexOf(tag)
+  if (i >= 0) pickedTags.value.splice(i, 1)
+  else pickedTags.value.push(tag)
+}
+
+function resetPick(): void {
+  pickedTags.value = selectedNode.value ? [...selectedNode.value.tags] : []
+}
+
+/** 用手动选取的标签跳题库（知识点 + 手动标签一起写入题库筛选） */
+async function practicePicked(): Promise<void> {
+  const node = selectedNode.value
+  if (!node) return
+  if (pickedTags.value.length === 0) {
+    toast.info('请至少勾选一个要跳转的标签')
+    return
+  }
+  try {
+    const picked = [...pickedTags.value]
+    await problemsStore.applyKnowledgeTags([node.id], picked)
+    await router.push({
+      path: '/problems',
+      query: { knowledge: node.id, tags: picked.join(',') }
+    })
+    toast.success(`已在题库中按「${node.name}」选中 ${picked.length} 个标签`)
+  } catch (e) {
+    toast.error(e instanceof Error ? e.message : String(e))
+  }
+}
+
+/** 拉取标签使用情况（题库题数 / 已练 / 已 AC，用于标注标签） */
+async function loadTagUsage(): Promise<void> {
+  try {
+    tagUsage.value = await invoke<TagUsage[]>(IpcChannels.StatsTagUsage)
+  } catch {
+    tagUsage.value = []
+  }
+}
+
+/** 节点关联标签 + 练习情况（面板里逐个渲染） */
+const nodeTagState = computed(() => {
+  const node = selectedNode.value
+  if (!node) return []
+  return node.tags.map((t) => {
+    const u = usageByTag.value.get(t)
+    return {
+      tag: t,
+      totalProblems: u?.totalProblems ?? 0,
+      attempted: u?.attempted ?? 0,
+      acProblems: u?.acProblems ?? 0
+    }
+  })
+})
+
+/** 切节点时把选中标签重置为该节点的默认标签 */
+watch(selectedNode, (n) => {
+  pickedTags.value = n ? [...n.tags] : []
+})
+
 
 interface Edge {
   from: string
@@ -309,6 +379,7 @@ onMounted(() => {
   onResize = () => measureEdges()
   window.addEventListener('resize', onResize)
   void load()
+  void loadTagUsage()
   // 字体加载完成后布局可能微移，重测一次连线
   const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts
   if (fonts?.ready?.then) void fonts.ready.then(() => measureEdges())
@@ -494,25 +565,40 @@ onBeforeUnmount(() => {
         <div v-else class="deps"><span class="dim small">基础节点，无前置</span></div>
         <div class="tags">
           <span class="dim small">关联标签：</span>
-          <span v-for="t in selectedNode.tags" :key="t" class="mini-tag">{{ t }}</span>
-          <span v-if="selectedNode.tags.length === 0" class="dim small">（综合节点，无单一标签）</span>
+          <span v-if="nodeTagState.length === 0" class="dim small">（综合节点，无单一标签）</span>
+          <button
+            v-for="t in nodeTagState"
+            :key="t.tag"
+            class="mini-tag tag-pick"
+            :class="{ on: pickedTags.includes(t.tag), empty: t.totalProblems === 0, done: t.acProblems > 0 }"
+            :title="`题库 ${t.totalProblems} 题 · 已练 ${t.attempted} · 已 AC ${t.acProblems}${t.totalProblems === 0 ? '（题库中暂无此题标签，请先同步题库）' : ''}`"
+            :data-tag="t.tag"
+            @click="togglePick(t.tag)"
+          >
+            {{ t.tag }}
+            <span class="tag-cnt">{{ t.acProblems > 0 ? `✓${t.acProblems}` : `${t.totalProblems}` }}</span>
+          </button>
         </div>
+        <p class="dim small pick-tip">
+          点击标签可手动选取/取消（默认全选该知识点的关联标签）；✓ 表示已 AC 的题数，纯数字表示题库题数，虚线框表示题库暂无此题。
+        </p>
       </div>
 
-      <!-- v1.9.1：单个知识点跳题库（选中该节点的关联标签并集） -->
+      <!-- v1.9.1 单知识点跳题库 + v1.14 手动选取标签 -->
       <div class="detail-actions">
         <button
           class="btn primary xs go-node-problems"
-          :disabled="selectedNode.tags.length === 0"
+          :disabled="pickedTags.length === 0"
           :title="
-            selectedNode.tags.length
-              ? `在题库中只选中「${selectedNode.name}」的 ${selectedNode.tags.length} 个关联标签`
-              : '综合节点没有关联标签，无法直接筛题'
+            pickedTags.length
+              ? `在题库中只选中：${pickedTags.join('、')}`
+              : '请至少勾选一个要跳转的标签'
           "
-          @click="practiceNode(selectedNode)"
+          @click="practicePicked()"
         >
-          📚 去题库练习该知识点（{{ selectedNode.tags.length }} 个关联标签）
+          📚 去题库练习（选中 {{ pickedTags.length }} 个标签）
         </button>
+        <button class="btn ghost xs" :disabled="nodeTagState.length === 0" @click="resetPick()">全选默认标签</button>
       </div>
 
       <p class="dim small tip">
@@ -925,6 +1011,39 @@ onBeforeUnmount(() => {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 1px 6px;
+}
+/* v1.14 FR-32：详情面板可手动选取的关联标签 */
+.tag-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.tag-pick:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.tag-pick.on {
+  border-color: var(--primary);
+  color: #fff;
+  background: color-mix(in srgb, var(--primary) 28%, var(--surface));
+}
+.tag-pick.done .tag-cnt {
+  color: var(--success);
+}
+.tag-pick.empty {
+  border-style: dashed;
+  opacity: 0.6;
+}
+.tag-cnt {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-faint);
+}
+.pick-tip {
+  margin: 6px 0 0;
+  line-height: 1.5;
 }
 /* v1.8 行内记录表单 */
 .btn.primary {

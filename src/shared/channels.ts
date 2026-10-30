@@ -108,6 +108,9 @@ export const IpcChannels = {
   // 技能树（v1.6 FR-9）
   SkillGet: 'skill:get',
 
+  // 首页推荐习题 + 已练习标签（v1.14 FR-31~FR-33）
+  RecommendGet: 'recommend:get',
+  StatsTagUsage: 'stats:tagUsage'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

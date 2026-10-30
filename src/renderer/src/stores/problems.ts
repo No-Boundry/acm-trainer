@@ -27,6 +27,11 @@ interface ProblemsState {
   knowledgeIds: string[]
   /** v1.8.1：其他页面（技能树）跳转过来时请求自动展开知识点面板 */
   knowledgeOpenRequested: boolean
+  /**
+   * v1.14 FR-32：从技能树手动选取的标签（覆盖节点默认标签并集）。
+   * null = 未手动指定，按 knowledgeIds 推导；跳转后由题库页消费一次。
+   */
+  tagOverride: string[] | null
   /** v1.10：题库页勾选中的题目（用于「加入题单」） */
   selectedIds: string[]
 }
@@ -64,6 +69,7 @@ export const useProblemsStore = defineStore('problems', {
     skillLayerNames: [],
     knowledgeIds: [],
     knowledgeOpenRequested: false,
+    tagOverride: null,
     selectedIds: []
   }),
   actions: {
@@ -105,6 +111,8 @@ export const useProblemsStore = defineStore('problems', {
     },
     /** 选中知识点对应的标签并集（供外部预览/调试；实际筛选走 filter.tags） */
     knowledgeTags(): string[] {
+      // v1.14：手动选取的标签优先
+      if (this.tagOverride && this.tagOverride.length > 0) return [...this.tagOverride]
       if (this.knowledgeIds.length === 0) return []
       const nodes = this.skills.filter((n) => this.knowledgeIds.includes(n.id))
       const set = new Set<string>()
@@ -180,6 +188,26 @@ export const useProblemsStore = defineStore('problems', {
         for (const n of nodes) for (const t of n.tags) tags.add(t)
         this.knowledgeIds = nodes.map((n) => n.id)
         this.filter = { ...this.filter, tags: [...tags] }
+        await this.load()
+      } catch {
+        // 查询失败保留选择
+      }
+    },
+    /**
+     * v1.14 FR-32：应用「知识点 + 手动选取标签」的选择（技能树详情面板跳转）。
+     * tags 为空或未提供时退化为 applyKnowledge（默认标签并集）。
+     */
+    async applyKnowledgeTags(ids: string[], tags?: string[]): Promise<void> {
+      this.knowledgeOpenRequested = true
+      this.filter = { ...this.filter, page: 1 }
+      try {
+        if (this.skills.length === 0) await this.loadSkills()
+        const nodes = this.skills.filter((n) => ids.includes(n.id))
+        const picked = tags && tags.length > 0 ? [...tags] : null
+        const finalTags = picked ?? [...new Set(nodes.flatMap((n) => n.tags))]
+        this.knowledgeIds = nodes.map((n) => n.id)
+        this.tagOverride = picked
+        this.filter = { ...this.filter, tags: finalTags }
         await this.load()
       } catch {
         // 查询失败保留选择

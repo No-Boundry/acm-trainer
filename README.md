@@ -1,16 +1,18 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.10.1-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-375%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-59%2F59-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.14.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-455%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-95%2F95-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.10.1**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.14.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,585 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
-- 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
+- 🎯 **首页推荐习题（v1.14）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）
+- 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `greedy 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
+- 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
 - 📋 **题单**：**三种建法**（题库勾选 / 粘贴题号识别 / 按知识点+难度生成），题单内记录完成状态、备注与复习进度
 - 🔁 **题单内间隔复习**：**1 / 3 / 7 / 14 / 30 / 60 天**阶梯，勾选完成自动进入第 1 档；「今日复习」跨题单汇总（逾期也算），反馈 **困难退一档 / 一般进一档 / 轻松跳一档**
 - 🗓️ **训练计划**：日历排期式 —— 每日题量、每周休息日、**标记「这天没空」后未完成任务自动顺延**、任务打卡、**超出目标日期的题量明确提示（不硬塞、不丢题）**
@@ -24,15 +26,17 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.10.1-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.14.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
-4. 到「学习路径」看掌握度与推荐，点「去题库练习」一键选中建议知识点，或用卡片右上角「📚」直达**单个知识点**；也可**切换国内比赛赛道**看必达进度；
-5. 到「📋 题单/计划」把要练的题组成题单（题库勾选 / 粘贴题号 / 按知识点生成），用「🔁 今日复习」按间隔复习；
-6. 到「🗓️ 训练计划」按每日题量排上日历，标记没空日自动顺延，做完就地打卡；
-7. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
+4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
+5. 到「学习路径」看掌握度与推荐，点「去题库练习」一键选中建议知识点，或用卡片右上角「📚」直达**单个知识点**；**打开知识点详情可手动勾选/取消关联标签**，只练自己想练的那几个；也可**切换国内比赛赛道**看必达进度；
+6. 到「📋 题单/计划」把要练的题组成题单（题库勾选 / 粘贴题号 / 按知识点生成），用「🔁 今日复习」按间隔复习；
+7. 到「🗓️ 训练计划」按每日题量排上日历，标记没空日自动顺延，做完就地打卡；
+8. 到「⚙️ 设置 → 首页推荐习题」调两栏的**排序方式**与**条数（1–30）**，回首页立即生效；
+9. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
 
-📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图）
+📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 新增 2 张验收截图）
 
 ## 常用命令
 
@@ -41,12 +45,12 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成测试（vitest，**375 例 / 39 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查 |
-| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**59/59 通过**：59 项断言 + 截图） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**455 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.14.0 为 **0 错误**） |
+| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**95/95 通过**：95 项断言 + 截图；v1.13.0 为 73 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
-| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**） |
+| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；另有 v1.14 验收截图 2 张，合计 26 张） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
 ## 文档
@@ -69,13 +73,13 @@
 
 ```
 src/
-├── main/          主进程：db（schema + repositories + 迁移）、services（cf/luogu/leetcode/rating/difficulty-stats/skill/problem-list/training-plan/review…）、ipc（各域 handler）
+├── main/          主进程：db（schema + repositories + 迁移）、services（cf/luogu/leetcode/rating/difficulty-stats/skill/problem-list/training-plan/review/**recommend**…）、ipc（各域 handler；v1.14 新增 `recommend:get`、`stats:tagUsage`）
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
-└── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件）
-tests/             单元 / 集成 / 渲染组件测试（vitest，39 个文件 / 375 用例）
+└── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
+tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 455 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync）与手册配图脚本（playwright-core）
-docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 24 张）
+docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 26 张）
 backup/            旧版项目归档
 ```
 
@@ -86,3 +90,11 @@ backup/            旧版项目归档
 - SQLite 使用 better-sqlite3 v13（Node-API 预编译，无需本机 C++ 工具链）；
 - 题面统一由 **Edge 浏览器**打开；未检测到 Edge 时回退系统默认浏览器；
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
+
+## 版本说明（v1.14.0）
+
+本版新增**知识点关联标签手动选取（FR-31）**、**标签练习情况可见化（FR-32）**、**首页推荐习题（FR-33）** 三项功能，
+并修复 GUI 验收中发现的三个真实缺陷：**设置从不被读取**（改了设置首页不变）、**已练习排序被末尾「到期优先」整体重排覆盖**、
+**同一天多题无法区分「最近 / 最久」**。关于「`dsu` 标签不存在」的反馈：真实库中该标签**存在且有 415 道题**（`并查集` 492 道、
+题库标签总数 574、零题标签 0），实际原因是**题库尚未同步到位**，因此没有删标签，而是把题数与已 AC 数**直接显示在界面上**。
+**无新增数据表**，覆盖安装即可。详见 [docs/08-发布说明.md](docs/08-发布说明.md) §19。

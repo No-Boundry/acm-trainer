@@ -471,8 +471,15 @@ onMounted(() => {
   if (knowledgeIds.length > 0) {
     // 有深链：切到知识点标签页并按其关联标签加载（避免先发一次空筛选请求）
     activeTagCat.value = KNOWLEDGE_CAT
+    // v1.14 FR-32：技能树详情面板可手动选取关联标签 → ?knowledge=dsu&tags=并查集,图
+    const rawTags = route.query.tags
+    const tagParam = Array.isArray(rawTags) ? rawTags.join(',') : (rawTags ?? '')
+    const pickedTags = String(tagParam)
+      .split(',')
+      .map((x) => x.trim())
+      .filter(Boolean)
     store
-      .applyKnowledge(knowledgeIds)
+      .applyKnowledgeTags(knowledgeIds, pickedTags)
       .catch((e: unknown) => toast.error(`题库加载失败: ${errMsg(e)}`))
   } else {
     // 列表加载失败可见化（init 内部静默，这里显式兜底一次）
