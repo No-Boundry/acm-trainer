@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest'
 import {
   aggregatePractice,
   buildRecommendation,
+  diversify,
   dueReviewSet,
   forgettingUrgency,
   knowledgeFilterTags,
@@ -15,7 +16,7 @@ import {
   type BuildRecommendDeps,
   type ProblemPractice
 } from '../../src/main/services/recommend'
-import type { ProblemRow, SkillNodeReport, TagUsage } from '@shared/types'
+import type { ProblemRow, RecommendedProblem, SkillNodeReport, TagUsage } from '@shared/types'
 import { mergeRecommendSettings } from '../../src/main/services/recommend-service'
 
 /**
@@ -30,10 +31,10 @@ const NOW = new Date('2026-03-10T12:00:00')
 function problem(partial: Partial<ProblemRow> & { id: string }): ProblemRow {
   return {
     id: partial.id,
-    contestId: 1,
+    contestId: partial.contestId === undefined ? 1 : partial.contestId,
     index: 'A',
     name: partial.name ?? `题 ${partial.id}`,
-    rating: partial.rating ?? 1500,
+    rating: partial.rating === undefined ? 1500 : partial.rating,
     difficulty: null,
     solvedCount: partial.solvedCount ?? 100,
     totalSubmit: 200,
@@ -473,5 +474,100 @@ describe('dueReviewSet：题单复习到期判定', () => {
       '2026-03-10'
     )
     expect([...set]).toEqual(['A'])
+  })
+})
+
+/**
+ * v1.15 缺陷回归：「未练习」栏被同一道题填满。
+ *
+ * 真实库里 132 道题 `solved_count = 0`（CF 实验场/gym 与部分洛谷题从未采集 AC 数），
+ * 而 CF 1639 那场比赛的 11 道题**都叫 "Treasure Hunt"**且 rating 为 NULL。
+ * 旧实现把 0 当"最少人做"排在最前、再按 id 打破平局，于是首页 8 个推荐位全是 1639:A…1639:H。
+ */
+describe('未练习推荐：solvedCount=0 与同名题（v1.15 回归）', () => {
+  const noNodes: SkillNodeReport[] = []
+  const baseDeps = {
+    problems: [] as ProblemRow[],
+    records: [] as { problemId: string; status: string; createdAt: string }[],
+    nodes: noNodes,
+    learning: { tier: 'untouched' as const, tags: [] as string[] },
+    nodeAcc: () => 1
+  }
+
+  function rec(p: ProblemRow): RecommendedProblem {
+    return {
+      problem: p,
+      state: 'undone',
+      reason: { kind: 'new', text: '' },
+      urgency: 0,
+      daysSince: null,
+      knowledgeIds: [],
+      listNames: [],
+      dueReview: false
+    }
+  }
+
+  it('solvedCount = 0 视为「未采集」，排在有 AC 数的题之后', () => {
+    const candidates = [
+      problem({ id: 'Z1', solvedCount: 0, rating: null }),
+      problem({ id: 'A1', solvedCount: 7 }),
+      problem({ id: 'Z2', solvedCount: 0, rating: null })
+    ]
+    const order = sortFresh({ ...baseDeps, candidates, order: 'learning-node' }).map((r) => r.problem.id)
+    expect(order).toEqual(['A1', 'Z1', 'Z2'])
+  })
+
+  it('端到端：AC 数未采集的同名题不会占据推荐位首位', () => {
+    const treasure = Array.from({ length: 11 }, (_, i) =>
+      problem({ id: `1639:${String.fromCharCode(65 + i)}`, name: 'Treasure Hunt', solvedCount: 0, contestId: 1639, rating: null })
+    )
+    const normal = [
+      problem({ id: '1:A', solvedCount: 120 }),
+      problem({ id: '2:B', solvedCount: 80 })
+    ]
+    const res = buildRecommendation(
+      { ...baseDeps, problems: [...treasure, ...normal] },
+      { freshLimit: 4 }
+    )
+    expect(res.fresh[0].problem.name).not.toBe('Treasure Hunt')
+    expect(res.fresh[0].problem.id).toBe('2:B')
+    expect(res.fresh[1].problem.id).toBe('1:A')
+  })
+
+  it('diversify：优先挑不同比赛/不同题名，仍不足才回填重复项', () => {
+    const items = [
+      ...Array.from({ length: 5 }, (_, i) =>
+        rec(problem({ id: `T${i + 1}`, name: 'Treasure Hunt', contestId: 1639 }))
+      ),
+      rec(problem({ id: 'G1', name: 'Graph Game', contestId: 100 })),
+      rec(problem({ id: 'G2', name: 'Digit DP', contestId: 101 })),
+      rec(problem({ id: 'G3', name: 'Sort It', contestId: 102 }))
+    ]
+    const out = diversify(items, 4)
+    expect(out.map((r) => r.problem.id)).toEqual(['T1', 'G1', 'G2', 'G3'])
+    const names = out.map((r) => r.problem.name)
+    expect(new Set(names).size).toBe(names.length)
+  })
+
+  it('diversify：同一场比赛最多 2 条，第 3 条排到后面', () => {
+    const items = [
+      rec(problem({ id: 'C1', name: 'Alpha', contestId: 900 })),
+      rec(problem({ id: 'C2', name: 'Beta', contestId: 900 })),
+      rec(problem({ id: 'C3', name: 'Gamma', contestId: 900 })),
+      rec(problem({ id: 'D1', name: 'Delta', contestId: 901 }))
+    ]
+    const out = diversify(items, 4)
+    expect(out.map((r) => r.problem.id)).toEqual(['C1', 'C2', 'D1', 'C3'])
+  })
+
+  it('diversify：不丢弃条目，limit 大于可用多样性时回填', () => {
+    const items = [
+      rec(problem({ id: 'X1', name: 'Same', contestId: 1 })),
+      rec(problem({ id: 'X2', name: 'Same', contestId: 2 })),
+      rec(problem({ id: 'X3', name: 'Same', contestId: 3 }))
+    ]
+    const out = diversify(items, 3)
+    expect(out.length).toBe(3)
+    expect(out.map((r) => r.problem.id)).toEqual(['X1', 'X2', 'X3'])
   })
 })

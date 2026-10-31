@@ -238,6 +238,30 @@ async function main() {
   check('STL 速查搜索生效（结果变少且 > 0）', refFiltered > 0 && refFiltered < refEntries, `${refFiltered}/${refEntries}`)
   const hasPitfall = (await win.locator('.pitfall').count()) > 0
   check('STL 速查展示「注意」坑点', hasPitfall)
+
+  // 3b-2) v1.15：初始化 / 清空等操作补齐
+  await win.locator('input.search').fill('初始化与清空')
+  await win.waitForTimeout(700)
+  const initEntry = win.locator('.entry').first()
+  const initFound = (await win.locator('.entry').count()) > 0
+  const initText = initFound ? await initEntry.innerText() : ''
+  check(
+    'STL 速查新增「初始化与清空速查对照」条目',
+    initFound && initText.includes('初始化与清空速查对照'),
+    initText.split('\n')[0] ?? ''
+  )
+  check(
+    'STL 速查标注适配器没有 clear()',
+    initText.includes('适配器') && initText.includes('clear()')
+  )
+  await win.locator('input.search').fill('vector')
+  await win.waitForTimeout(700)
+  const vectorText = await win.locator('.entry').first().innerText()
+  check(
+    '容器条目补齐初始化 / 清空 / 释放内存写法',
+    vectorText.includes('vector<int>().swap') && vectorText.includes('clear()') && vectorText.includes('assign'),
+    vectorText.includes('swap') ? '含 clear/assign/swap' : '缺少'
+  )
   await win.locator('button', { hasText: '重置' }).first().click()
   await win.waitForTimeout(500)
   await win.screenshot({ path: path.join(OUT, '06b-stl-reference.png') })
@@ -561,6 +585,17 @@ async function main() {
   const practicedItems = await win.locator('[data-rec="practiced"] .rec-item').count()
   const freshItems = await win.locator('[data-rec="fresh"] .rec-item').count()
   check('推荐列表有实际条目', practicedItems + freshItems > 0, `已练习=${practicedItems} 未练习=${freshItems}`)
+
+  // v1.15 缺陷回归：未练习栏曾被同比赛同名题（CF 1639 的 11 道 Treasure Hunt）填满
+  if (freshItems > 1) {
+    const freshNames = await win.locator('[data-rec="fresh"] .rec-item .pname').allInnerTexts()
+    const uniq = new Set(freshNames.map((t) => t.trim()))
+    check(
+      '未练习推荐不重复（同一道题不占满整栏）',
+      uniq.size === freshNames.length,
+      `${uniq.size}/${freshNames.length} 不重复 · ${[...uniq].slice(0, 3).join(' / ')}`
+    )
+  }
   const tagPanel = await win.locator('.tag-panel').count()
   const tagChips = await win.locator('.tag-chip').count()
   check('首页出现「已练习标签」面板（有已 AC 标签时）', tagPanel > 0 && tagChips > 0, `面板=${tagPanel} 标签=${tagChips}`)

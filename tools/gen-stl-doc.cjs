@@ -12,8 +12,18 @@ const OUT = path.join(ROOT, 'docs', '10-STL参考.md')
 // 以正则解析数据文件（避免引入 TS 运行时）
 const src = fs.readFileSync(SRC, 'utf8')
 
-// 分类
-const cats = [...src.matchAll(/key: '([a-z]+)',\s*label: '([^']+)',\s*hint: '([^']*)'/g)].map((m) => ({
+// 分类：只解析 STL_CATEGORIES 数组本身。
+// 注意不要对全文匹配：文件末尾 categoryMeta() 的兜底值 `{ key: 'misc', label: '其他', hint: '' }`
+// 也会命中同一个正则，导致 misc 类条目被重复输出一份「其他」分组（v1.15 修正）。
+const catBlockStart = src.indexOf('export const STL_CATEGORIES')
+const catOpen = catBlockStart >= 0 ? src.indexOf('[', src.indexOf('=', catBlockStart)) : -1
+const catClose = catOpen >= 0 ? src.indexOf('\n]', catOpen) : -1
+const catBlock = catOpen >= 0 && catClose > catOpen ? src.slice(catOpen, catClose) : ''
+if (!catBlock) {
+  console.error('未能解析 STL_CATEGORIES，请检查 src/shared/stl-reference.ts 的结构')
+  process.exit(1)
+}
+const cats = [...catBlock.matchAll(/key: '([a-z]+)',\s*label: '([^']+)',\s*hint: '([^']*)'/g)].map((m) => ({
   key: m[1],
   label: m[2],
   hint: m[3]

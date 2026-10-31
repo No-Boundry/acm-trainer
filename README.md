@@ -1,12 +1,12 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.14.1-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-458%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-95%2F95-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.15.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-463%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-99%2F99-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.14.1**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.15.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,585 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
@@ -19,14 +19,14 @@
 - 📝 **练习记录与统计**：结果/耗时/错题标记，ECharts 趋势与知识点分布，**难度分布（按题源）**
 - 📓 **笔记与错题本**：Markdown 编辑（代码高亮、Tab 缩进、自动保存）
 - 🧩 **模板库**：算法模板分类管理，一键复制
-- 📘 **STL 速查**：内置 34 条竞赛 STL 参考资料（容器/算法/复杂度/坑点，可搜索、一键复制代码、跳转 cppreference）
+- 📘 **STL 速查**：内置 35 条竞赛 STL 参考资料（容器/算法/复杂度/坑点，**含各容器的初始化与清空写法 + 「初始化与清空速查对照」**，可搜索、一键复制代码、跳转 cppreference）
 - ⚔️ **虚拟比赛**：按难度/知识点组卷、限时训练、ACM 罚时计分、结果回看
 - 🏅 **水平评估**：综合分（练习+比赛，权重可配）＋ 独立的洛谷练习水平与**力扣练习水平**，历史趋势
 - 🔗 **题面**：用 **Edge 浏览器**打开原站页面（CF / 洛谷 / 力扣；v1.8 起不再内嵌网页题面）
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.14.1-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.15.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -45,9 +45,9 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成/渲染测试（vitest，**458 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.14.1 为 **0 错误**） |
-| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**95/95 通过**：95 项断言 + 截图；v1.13.0 为 73 项） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**463 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.15.0 为 **0 错误**） |
+| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**99/99 通过**：99 项断言 + 截图；v1.14.1 为 95 项、v1.13.0 为 73 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
@@ -78,7 +78,7 @@ src/
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
-tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 458 用例）
+tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 463 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / **gui-perf**）与手册配图脚本（playwright-core）
 docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 26 张）
 backup/            旧版项目归档
@@ -92,7 +92,23 @@ backup/            旧版项目归档
 - 题面统一由 **Edge 浏览器**打开；未检测到 Edge 时回退系统默认浏览器；
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
-## 版本说明（v1.14.1）
+## 版本说明
+
+### v1.15.0
+本版修两个用户反馈：**首页「未练习」推荐被同一道题填满**、**STL 速查缺「初始化 / 清空 / 释放内存」写法**。**无新增数据表、无新增 IPC、无新增设置项**，覆盖安装即可。
+
+现象：首页「推荐习题 → 未练习」栏 8 条题名全是 "Treasure Hunt"，题号连号 `1639:A`…`1639:H`。
+根因：真实库（31764 题）有 **132 道题 `solved_count = 0`**（CF 实验场/gym 30 道 + 洛谷 102 道，**从未采集到 AC 数**，其中 117 道 `rating` 也是 NULL，分布在 8 场比赛），
+未练习排序按 AC 数**升序**把 0 当成「最少人做」顶到最前，再按 `rating` 与题号破平局 —— CF **1639** 恰好有 **11 道同名题**（A–K），连号占满整个切片。
+修复：新增 `acOf()` 把 0 视为「未采集（未知）」排到最后；新增 `diversify(items, limit, perContest = 2)` 做推荐位多样性截断（同一场比赛最多 2 条、同名题最多 1 条，超出的**按原顺序后移不丢弃**），未练习段改用 `diversify(freshSorted, freshLimit)`，用户所选排序语义不变。
+
+STL 速查条目 **34 → 35 条**（分类仍 6 个）：`vector` / `deque` / `array` / `string` / `stack` / `queue` / `priority_queue` / `set` / `map` / `unordered_*` / `pair`·`tuple` / `bitset` **12 个容器条目**补齐「初始化 → 增删改查 → 清空 → 释放内存」四段写法，并新增 **「初始化与清空速查对照」** 条目（适配器与 `array` / `bitset` 没有 `clear()` 的替代写法逐条标注）。
+顺带修掉 `tools/gen-stl-doc.cjs` 的分类解析缺陷（原先全文正则把兜底值 `{ key: 'misc', label: '其他' }` 当成第 7 个分类，导致 `docs/10` 重复输出「其他」分组），`docs/10-STL参考.md` 已重新生成（35 条 / 6 分类）。
+
+测试 **463/463（43 文件）**、`verify:gui` **99/99**（新增 4 项）、`verify:smoke` **33/33**。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §21。
+
+### v1.14.1
 
 **v1.14.1 是性能补丁版**：只修性能，**无新功能、无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。
 修的是用户反馈的「**首页跳转题库有明显卡顿**」+「**启动速度明显变慢**」——两者同一根因：首页推荐要取整个题库，

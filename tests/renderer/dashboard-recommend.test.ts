@@ -117,18 +117,25 @@ function setupApi(settings: Record<string, string> = {}) {
 /**
  * 首页把「推荐 / 标签」的加载推迟到 requestAnimationFrame + setTimeout 之后（先让统计卡片出画面，
  * v1.14.1 性能优化），所以测试要多等一个真实定时器周期才看得到推荐区。
+ *
+ * 注意：固定等 40ms 在「全量 43 个文件并行」时不够稳（机器忙时 rAF + 定时器可能延后，
+ * 曾偶发 `Cannot read properties of undefined (reading 'trigger')`）。改成轮询：
+ * 每轮 flush + 10ms，渲染出目标元素就提前返回，最坏 20 轮（200ms）。
  */
-async function settle(): Promise<void> {
-  await flushPromises()
-  await new Promise((r) => setTimeout(r, 40))
-  await flushPromises()
+async function settle(until?: () => boolean): Promise<void> {
+  for (let i = 0; i < 20; i++) {
+    await flushPromises()
+    await new Promise((r) => setTimeout(r, 10))
+    await flushPromises()
+    if (until && until()) return
+  }
 }
 
 async function mountPage(settings: Record<string, string> = {}) {
   const { api, calls } = setupApi(settings)
   const router = createRouter({ history: createWebHashHistory(), routes: [{ path: '/:p(.*)*', component: { template: '<div/>' } }] })
   const wrapper = mount(DashboardPage, { global: { plugins: [router, createPinia()] } })
-  await settle()
+  await settle(() => wrapper.findAll('.rec-item').length > 0)
   return { wrapper, api, calls, router }
 }
 

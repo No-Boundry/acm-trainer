@@ -238,8 +238,15 @@ export function sortFresh(deps: FreshDeps): RecommendedProblem[] {
     const inLearning = p.tags.some((t) => learningSet.has(t))
     return { p, hit, inLearning }
   })
+  /**
+   * AC 数排序：`solved_count = 0` 是**数据未采集**（CF 实验场/gym 题、洛谷部分题），
+   * 不代表「没人做对」。若直接按 0 排升序，这些题会集体抢到最前面，
+   * 而同一场比赛里常有同名题（如 CF 1639 的 11 道 Treasure Hunt），
+   * 首页「未练习」栏就会被同一道题填满。所以把 0 当成未知值排到最后。
+   */
+  const acOf = (p: ProblemRow): number => (p.solvedCount > 0 ? p.solvedCount : Number.MAX_SAFE_INTEGER)
   const byAc = (a: { p: ProblemRow }, b: { p: ProblemRow }): number =>
-    a.p.solvedCount - b.p.solvedCount || ratingOf(a.p) - ratingOf(b.p) || a.p.id.localeCompare(b.p.id)
+    acOf(a.p) - acOf(b.p) || ratingOf(a.p) - ratingOf(b.p) || a.p.id.localeCompare(b.p.id)
 
   switch (order) {
     case 'weak-node':
@@ -283,6 +290,40 @@ export function sortFresh(deps: FreshDeps): RecommendedProblem[] {
       dueReview: false
     }
   })
+}
+
+/**
+ * 推荐位多样性截断（v1.15）：同一场比赛 / 同名题不占满推荐位。
+ *
+ * 为什么需要：题库里同一场比赛可能有多道同名题（CF 1639 有 11 道 "Treasure Hunt"），
+ * 排序规则一旦让它们相邻，`slice(0, 8)` 出的 8 条就全是同一个题名，
+ * 看起来像「同一道题填满了一栏」。这里按「来源+比赛」限 perContest 条、
+ * 按「来源+题名」限 1 条；超额的按原顺序排到后面（**不丢弃**），
+ * 既保留用户所选排序的语义，又保证首页有足够多样性。
+ */
+export function diversify(
+  items: RecommendedProblem[],
+  limit: number,
+  perContest = 2
+): RecommendedProblem[] {
+  const contestCount = new Map<string, number>()
+  const nameSeen = new Set<string>()
+  const picked: RecommendedProblem[] = []
+  const overflow: RecommendedProblem[] = []
+  for (const it of items) {
+    const p = it.problem
+    const contestKey = p.contestId == null ? `${p.source}:${p.id}` : `${p.source}:c${p.contestId}`
+    const nameKey = `${p.source}:${p.name}`
+    const used = contestCount.get(contestKey) ?? 0
+    if (used < perContest && !nameSeen.has(nameKey)) {
+      contestCount.set(contestKey, used + 1)
+      nameSeen.add(nameKey)
+      picked.push(it)
+    } else {
+      overflow.push(it)
+    }
+  }
+  return [...picked, ...overflow].slice(0, Math.max(1, limit))
 }
 
 /** 知识点筛选：把节点 id 解析成标签并集（无节点 → 空 = 不过滤） */
@@ -437,7 +478,8 @@ export function buildRecommendation(deps: BuildRecommendDeps, input: RecommendIn
       return n.stats.acc ?? 1
     }
   })
-  const fresh = freshSorted.slice(0, Math.max(1, Math.min(50, input.freshLimit ?? 8))).map((r) => ({
+  const freshLimit = Math.max(1, Math.min(50, input.freshLimit ?? 8))
+  const fresh = diversify(freshSorted, freshLimit).map((r) => ({
     ...r,
     listNames: deps.listNamesOf?.(r.problem.id) ?? []
   }))
