@@ -62,7 +62,7 @@ describe('nodeAvailability（FR-9.3 依赖达标）', () => {
 describe('buildSkillReport 组装（FR-9.2/9.3 + v1.7 FR-11 intro 透传）', () => {
   const emptyRepos = (): Repos =>
     ({
-      records: { list: () => ({ items: [], total: 0 }) },
+      records: { list: () => ({ items: [], total: 0 }), all: () => [] },
       problems: { getById: () => null }
     }) as unknown as Repos
 

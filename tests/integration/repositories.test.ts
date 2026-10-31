@@ -335,3 +335,55 @@ describe('仓库返回值字段映射（不得出现 undefined）', () => {
     expect(repo.list({}).every((x) => typeof x.createdAt === 'string' && typeof x.updatedAt === 'string')).toBe(true)
   })
 })
+
+/**
+ * v1.14.1 回归：`RecordsRepo.list()` 的 pageSize 上限是 200，
+ * 而掌握度 / 水平评估 / 首页推荐 / 组卷都曾用 `list({ pageSize: 100000 })` 想取全量，
+ * 结果被静默截断成 200 条（组卷甚至只在前 200 道题里抽）。
+ * 下面三个用例守住「全量读取路径确实能越过 200」。
+ */
+describe('全量读取不得被 200 钳制（v1.14.1）', () => {
+  const makeProblems = (n: number) =>
+    Array.from({ length: n }, (_, i) => ({
+      contestId: 2000 + Math.floor(i / 5),
+      index: String.fromCharCode(65 + (i % 5)),
+      name: `P${i}`,
+      rating: 800 + (i % 20) * 100,
+      solvedCount: i,
+      tags: ['implementation']
+    }))
+
+  it('records.all() 返回全部记录，而 list 单页最多 200 条', () => {
+    const problems = new ProblemsRepo(db)
+    problems.upsertMany(makeProblems(260), '2026-01-01 00:00:00')
+    const repo = new RecordsRepo(db)
+    const ids = problems.leanAll().map((p) => p.id)
+    for (const id of ids.slice(0, 260)) repo.create({ problemId: id, status: 'AC' })
+
+    expect(repo.count()).toBe(260)
+    expect(repo.all()).toHaveLength(260)
+    // 旧写法（想取全量却传大 pageSize）会被钳到 200
+    expect(repo.list({ page: 1, pageSize: 100000 }).items).toHaveLength(200)
+    // all() 按时间倒序，count() 与长度一致
+    expect(repo.all()[0].createdAt >= repo.all().at(-1)!.createdAt).toBe(true)
+  })
+
+  it('problems.leanAll() 覆盖全库且按 tags 解析、不计 practiced/lastStatus', () => {
+    const repo = new ProblemsRepo(db)
+    repo.upsertMany(makeProblems(260), '2026-01-01 00:00:00')
+    const lean = repo.leanAll()
+    expect(lean).toHaveLength(260)
+    expect(lean.every((p) => Array.isArray(p.tags) && p.tags.length > 0)).toBe(true)
+    expect(lean.every((p) => !p.practiced && p.lastStatus === null)).toBe(true)
+  })
+
+  it('problems.candidates() 可越过 200 取全量候选（组卷用）', () => {
+    const repo = new ProblemsRepo(db)
+    repo.upsertMany(makeProblems(260), '2026-01-01 00:00:00')
+    // 旧实现 list 被钳到 200 → 组卷永远只能在题库前 200 题里抽
+    expect(repo.list({ page: 1, pageSize: 100000, source: 'all' }).items).toHaveLength(200)
+    const all = repo.candidates({ source: 'all' }, 5000)
+    expect(all.length).toBe(260)
+    expect(all[all.length - 1].id).not.toBe(all[0].id)
+  })
+})

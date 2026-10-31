@@ -114,8 +114,14 @@ onMounted(async () => {
   } finally {
     loading.value = false
   }
-  void loadRecommend()
-  void loadTags()
+  // v1.14.1 性能：推荐与标签统计要扫题库（主进程是同步 SQLite），延到首帧之后再请求，
+  // 让上面的统计卡片先出画面，避免「进首页先卡一下」。
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      void loadRecommend()
+      void loadTags()
+    }, 0)
+  })
 })
 
 const statusColor: Record<string, string> = {

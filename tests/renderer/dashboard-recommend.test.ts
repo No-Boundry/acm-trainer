@@ -114,12 +114,21 @@ function setupApi(settings: Record<string, string> = {}) {
   return { api, calls }
 }
 
+/**
+ * 首页把「推荐 / 标签」的加载推迟到 requestAnimationFrame + setTimeout 之后（先让统计卡片出画面，
+ * v1.14.1 性能优化），所以测试要多等一个真实定时器周期才看得到推荐区。
+ */
+async function settle(): Promise<void> {
+  await flushPromises()
+  await new Promise((r) => setTimeout(r, 40))
+  await flushPromises()
+}
+
 async function mountPage(settings: Record<string, string> = {}) {
   const { api, calls } = setupApi(settings)
   const router = createRouter({ history: createWebHashHistory(), routes: [{ path: '/:p(.*)*', component: { template: '<div/>' } }] })
   const wrapper = mount(DashboardPage, { global: { plugins: [router, createPinia()] } })
-  await flushPromises()
-  await flushPromises()
+  await settle()
   return { wrapper, api, calls, router }
 }
 
@@ -239,8 +248,7 @@ describe('首页推荐习题（v1.14 FR-31~FR-33）', () => {
     }
     ;(window as unknown as { api: unknown }).api = api
     const wrapper = mount(DashboardPage, { global: { plugins: [createPinia()], stubs: { ChartBox: true } } })
-    await flushPromises()
-    await flushPromises()
+    await settle()
     expect(wrapper.text()).toContain('暂无推荐数据')
     expect(wrapper.find('[data-panel="recommend"]').exists()).toBe(true)
   })

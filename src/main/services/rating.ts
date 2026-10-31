@@ -249,8 +249,8 @@ export function computeRatingBreakdown(repos: Repos): RatingBreakdown {
   const lcDiffMap =
     parseLeetcodeDiffMap(repos.settings.get('leetcodeDiffRatings')) ?? LEETCODE_DIFFICULTY_RATING
 
-  // 练习数据：近 90 天记录，按题取最近一次
-  const { items: records } = repos.records.list({ page: 1, pageSize: 100000 })
+  // 练习数据：近 90 天记录，按题取最近一次（v1.14.1：改用 all()，原先被 200 钳制静默截断）
+  const records = repos.records.all()
   const byProblem = new Map<string, { createdAt: string; status: ResultStatus }>()
   for (const r of records) {
     if (r.createdAt < cutoff) continue

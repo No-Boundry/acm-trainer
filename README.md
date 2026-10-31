@@ -1,12 +1,12 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.14.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-455%20passed-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.14.1-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-458%20passed-brightgreen)](docs/04-测试规范.md)
 [![gui](https://img.shields.io/badge/verify%3Agui-95%2F95-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.14.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.14.1**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,585 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
@@ -26,7 +26,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.14.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.14.1-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -45,11 +45,12 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成/渲染测试（vitest，**455 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.14.0 为 **0 错误**） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**458 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.14.1 为 **0 错误**） |
 | `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**95/95 通过**：95 项断言 + 截图；v1.13.0 为 73 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
+| `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
 | `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；另有 v1.14 验收截图 2 张，合计 26 张） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
@@ -77,8 +78,8 @@ src/
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
-tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 455 用例）
-tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync）与手册配图脚本（playwright-core）
+tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 458 用例）
+tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / **gui-perf**）与手册配图脚本（playwright-core）
 docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 26 张）
 backup/            旧版项目归档
 ```
@@ -91,8 +92,20 @@ backup/            旧版项目归档
 - 题面统一由 **Edge 浏览器**打开；未检测到 Edge 时回退系统默认浏览器；
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
-## 版本说明（v1.14.0）
+## 版本说明（v1.14.1）
 
+**v1.14.1 是性能补丁版**：只修性能，**无新功能、无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。
+修的是用户反馈的「**首页跳转题库有明显卡顿**」+「**启动速度明显变慢**」——两者同一根因：首页推荐要取整个题库，
+旧实现用分页接口一页页翻（3 万题要翻 **159 页**，每行还带标签聚合 / `EXISTS` 已练习 / 最近状态 **3 个相关子查询**），
+真实库（31764 题）实测 **9072 ms**，而精简列单条 SQL 只要 **83 ms**（109 倍）；更关键的是本地库是**同步** API 且跑在主进程，
+这 9 秒会把所有页面切换与 IPC 一起堵住，所以用户看到的是「启动慢 + 跳题库卡」。
+修复：新增 `ProblemsRepo.leanAll()`（单条精简 SQL 取全库）+ 三级缓存（题库 / 标签统计 / 推荐结果，数据一变缓存键就变、随机排序不缓存）+ 首页 `requestAnimationFrame` 先出统计卡片；
+顺带修掉 `RecordsRepo.list()` 的 **200 条静默截断**（技能掌握度 / 水平评估 / 首页已练习段 / 组卷候选 4 处调用点改用新增的 `records.all()`）。
+实测：首页统计卡片 **13984 → 787 ms**、`recommend:get` **12498 → 33 ms**、题库→首页 **12802 → 157 ms**；
+新增 `npm run verify:perf` 性能自查（复制真实库副本测量，不写真实数据）。测试 **458/458（43 文件）**。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §20。
+
+### v1.14.0
 本版新增**知识点关联标签手动选取（FR-31）**、**标签练习情况可见化（FR-32）**、**首页推荐习题（FR-33）** 三项功能，
 并修复 GUI 验收中发现的三个真实缺陷：**设置从不被读取**（改了设置首页不变）、**已练习排序被末尾「到期优先」整体重排覆盖**、
 **同一天多题无法区分「最近 / 最久」**。关于「`dsu` 标签不存在」的反馈：真实库中该标签**存在且有 415 道题**（`并查集` 492 道、

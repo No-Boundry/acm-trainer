@@ -124,7 +124,7 @@ const ALL_ID_VALUE = `CASE p.source WHEN 'cf' THEN p."index" WHEN 'luogu' THEN p
  * 生成完整 ORDER BY 子句（含方向）。空值标记恒为 ASC（排最后），
  * 其余键使用 filter.sortDir。
  */
-export function buildOrderSql(filter: ProblemFilter): string {
+export function buildOrderSql(filter: Omit<ProblemFilter, 'page' | 'pageSize'>): string {
   const dir = filter.sortDir === 'asc' ? 'ASC' : 'DESC'
   const source = filter.source
   const sortBy = filter.sortBy ?? 'rating'
@@ -219,11 +219,50 @@ export class ProblemsRepo {
 
   /** 组合筛选（数据源/洛谷难度/CF 难度/标签/状态/关键字）+ 分页 + 排序 */
   list(filter: ProblemFilter): ProblemListResult {
-    const conditions: string[] = []
-    const params: Record<string, unknown> = {}
     // 分页参数钳制（防御非法输入）
     const page = Math.max(1, Math.floor(filter.page ?? 1))
     const pageSize = Math.min(200, Math.max(1, Math.floor(filter.pageSize ?? 20)))
+    const { where, params } = this.buildWhere(filter)
+    // v1.9.1：排序按题源分别取「难度」与「题号」列（见 buildOrderSql）
+    const orderSql = buildOrderSql(filter)
+
+    const total = (
+      this.db.prepare(`SELECT COUNT(*) AS c FROM problems p ${where}`).get(params) as { c: number }
+    ).c
+
+    const rows = this.db
+      .prepare(`${ROW_SELECT} ${where} ORDER BY ${orderSql} LIMIT @limit OFFSET @offset`)
+      .all({
+        ...params,
+        limit: pageSize,
+        offset: (page - 1) * pageSize
+      }) as ProblemRowRaw[]
+
+    return { total, items: rows.map(mapRow) }
+  }
+
+  /**
+   * 取满足筛选条件的**全部**候选题目（不分页，供组卷等确需全集的场景）。
+   *
+   * v1.14.1 修复：组卷此前调 `list({ pageSize: 100000 })`，而 `list()` 把 pageSize 钳到 200，
+   * 于是只在题库前 200 题里抽题——题目一多，组卷的多样性就被悄悄限死了。
+   */
+  candidates(filter: Omit<ProblemFilter, 'page' | 'pageSize'>, max = 5000): ProblemRow[] {
+    const { where, params } = this.buildWhere(filter)
+    const orderSql = buildOrderSql(filter)
+    const rows = this.db
+      .prepare(`${ROW_SELECT} ${where} ORDER BY ${orderSql} LIMIT @limit`)
+      .all({ ...params, limit: Math.max(1, Math.floor(max)) }) as ProblemRowRaw[]
+    return rows.map(mapRow)
+  }
+
+  /** 由筛选条件拼 WHERE（list / candidates 共用，保证两处口径一致） */
+  private buildWhere(filter: Omit<ProblemFilter, 'page' | 'pageSize'>): {
+    where: string
+    params: Record<string, unknown>
+  } {
+    const conditions: string[] = []
+    const params: Record<string, unknown> = {}
 
     // 数据源过滤（FR-8.2；v1.9 支持 leetcode）
     if (filter.source === 'cf' || filter.source === 'luogu' || filter.source === 'leetcode') {
@@ -283,23 +322,32 @@ export class ProblemsRepo {
       conditions.push('NOT EXISTS (SELECT 1 FROM practice_records r WHERE r.problem_id = p.id)')
     }
 
-    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
-    // v1.9.1：排序按题源分别取「难度」与「题号」列（见 buildOrderSql）
-    const orderSql = buildOrderSql(filter)
+    return { where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '', params }
+  }
 
-    const total = (
-      this.db.prepare(`SELECT COUNT(*) AS c FROM problems p ${where}`).get(params) as { c: number }
-    ).c
-
+  /**
+   * 全库精简取数（v1.14.1 性能优化，专供首页推荐 / 技能报告这类「要全集但不需交互字段」的场景）。
+   *
+   * 为什么单独一条 SQL：`list()` 的 ROW_SELECT 每行带 3 个相关子查询（tags 聚合、EXISTS practiced、
+   * 最近状态），全库 3.17 万题按 200 一页翻 160 次实测要 **9.0 秒**，而 better-sqlite3 是同步 API，
+   * 会把主进程连同所有 IPC 一起卡住（表现为启动慢、首页跳题库卡顿）。这里去掉两个子查询、单条查询
+   * 一次取完，实测约 **83 ms**（快 100 倍以上）。
+   *
+   * practiced / lastStatus 不在这里算：调用方用 practice_records 聚合得出（记录量远小于题库），
+   * 这样也避免了 `NOT EXISTS` 在 3 万行上的重复求值。
+   */
+  leanAll(): ProblemRow[] {
     const rows = this.db
-      .prepare(`${ROW_SELECT} ${where} ORDER BY ${orderSql} LIMIT @limit OFFSET @offset`)
-      .all({
-        ...params,
-        limit: pageSize,
-        offset: (page - 1) * pageSize
-      }) as ProblemRowRaw[]
-
-    return { total, items: rows.map(mapRow) }
+      .prepare(
+        `SELECT p.id, p.contest_id AS contestId, p."index", p.name, p.rating, p.difficulty,
+                p.solved_count AS solvedCount, p.total_submit AS totalSubmit, p.source,
+                p.cf_url AS cfUrl, p.fetched_at AS fetchedAt,
+                (SELECT GROUP_CONCAT(t.name, ',') FROM problem_tags pt
+                   JOIN tags t ON t.id = pt.tag_id WHERE pt.problem_id = p.id) AS tagsCsv
+         FROM problems p`
+      )
+      .all() as (Omit<ProblemRowRaw, 'practiced' | 'lastStatus'>)[]
+    return rows.map((r) => mapRow({ ...r, practiced: 0, lastStatus: null }))
   }
 
   getById(id: string): ProblemRow | null {

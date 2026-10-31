@@ -125,6 +125,23 @@ export class RecordsRepo {
     return { total, items: rows.map(mapRow) }
   }
 
+  /**
+   * 全量练习记录（仅供统计/推荐/技能报告等内部聚合使用，不分页）。
+   *
+   * v1.14.1 修复：此前这些地方调用 `list({ pageSize: 100000 })`，而被 `list()` 里
+   * `Math.min(200, …)` 的钳制静默截断成 **200 条**——记录超过 200 条后，技能掌握度、
+   * 首页推荐、标签统计都会算少而无人察觉。需要全集就必须走这个显式方法。
+   */
+  all(): PracticeRecord[] {
+    const rows = this.db.prepare(`${ROW_SELECT} ORDER BY created_at DESC, id DESC`).all() as RecordRow[]
+    return rows.map(mapRow)
+  }
+
+  /** 练习记录总数（缓存 key 用） */
+  count(): number {
+    return (this.db.prepare('SELECT COUNT(*) AS c FROM practice_records').get() as { c: number }).c
+  }
+
   update(
     id: number,
     fields: { status?: ResultStatus; note?: string | null; isMistake?: boolean }

@@ -24,17 +24,19 @@ export function generateProblemSelection(
   req: GenerateSelectionReq
 ): string[] {
   const { count, ratingMin, ratingMax, tags, excludeIds } = req
+  // v1.14.1：改用 candidates()（不再被 list 的 200 页钳制限死候选池）
   const candidates = repo
-    .list({
-      page: 1,
-      pageSize: 100000,
-      ratingMin: ratingMin ?? null,
-      ratingMax: ratingMax ?? null,
-      tags: tags ?? [],
-      sortBy: 'rating',
-      sortDir: 'asc'
-    })
-    .items.filter((p) => p.rating != null && !(excludeIds ?? []).includes(p.id))
+    .candidates(
+      {
+        ratingMin: ratingMin ?? null,
+        ratingMax: ratingMax ?? null,
+        tags: tags ?? [],
+        sortBy: 'rating',
+        sortDir: 'asc'
+      },
+      5000
+    )
+    .filter((p) => p.rating != null && !(excludeIds ?? []).includes(p.id))
 
   if (candidates.length < count) {
     throw new AppError('VALIDATION', '符合条件的题目不足，请放宽难度或标签条件')

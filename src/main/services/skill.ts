@@ -83,7 +83,9 @@ function aggregateNode(
 
 /** 构建完整技能报告（FR-9.2/9.3） */
 export function buildSkillReport(repos: Repos): SkillReport {
-  const { items: records } = repos.records.list({ page: 1, pageSize: 100000 })
+  // v1.14.1：改用 records.all()——原先 list({pageSize:1e5}) 被 200 钳制，超过 200 条记录后
+  // 掌握度会静默算少。这里必须取全量。
+  const records = repos.records.all()
 
   const problemCache = new Map<string, ProblemMeta>()
   const metaOf = (pid: string): ProblemMeta => {
