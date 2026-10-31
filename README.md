@@ -1,16 +1,16 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.15.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-463%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-99%2F99-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.16.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-474%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-105%2F105-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.15.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.16.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
-- 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,585 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
+- 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,764 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
-- 🎯 **首页推荐习题（v1.14）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）
+- 🎯 **首页推荐习题（v1.14；v1.16 起与题库页共用题源筛选）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）；**推荐区上方多一行题源切换（全部 / Codeforces / 洛谷 / 力扣），与题库页是同一个状态，在哪边切另一边都跟着变**
 - 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `greedy 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
 - 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
 - 📋 **题单**：**三种建法**（题库勾选 / 粘贴题号识别 / 按知识点+难度生成），题单内记录完成状态、备注与复习进度
@@ -26,7 +26,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.15.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.16.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -36,7 +36,7 @@
 8. 到「⚙️ 设置 → 首页推荐习题」调两栏的**排序方式**与**条数（1–30）**，回首页立即生效；
 9. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
 
-📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 新增 2 张验收截图）
+📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`）
 
 ## 常用命令
 
@@ -45,13 +45,13 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成/渲染测试（vitest，**463 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.15.0 为 **0 错误**） |
-| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**99/99 通过**：99 项断言 + 截图；v1.14.1 为 95 项、v1.13.0 为 73 项） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**474 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.16.0 为 **0 错误**） |
+| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**105/105 通过**：105 项断言 + 截图；v1.15.0 为 99 项、v1.14.1 为 95 项、v1.13.0 为 73 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
-| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；另有 v1.14 验收截图 2 张，合计 26 张） |
+| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 4 张验收/补充截图——v1.14 二张、v1.16 新增 `15b-source-linked.png` 等，合计 28 张） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
 ## 文档
@@ -78,9 +78,9 @@ src/
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
-tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 463 用例）
+tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 474 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / **gui-perf**）与手册配图脚本（playwright-core）
-docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 26 张）
+docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 28 张）
 backup/            旧版项目归档
 ```
 
@@ -93,6 +93,20 @@ backup/            旧版项目归档
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
 ## 版本说明
+
+### v1.16.0
+本版把首页「推荐习题」与题库页的**题源（平台）筛选**合并成同一个状态：在哪边切题源，另一边都跟着变。**无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。
+
+- **之前的现象**：首页推荐永远按「全部平台」推荐。用户在题库页选了「洛谷」，回首页看到的仍是三源混合的结果，两页口径不一致。
+- **状态源**：沿用 Pinia `problems` store 里已有的 `filter.source`（`'all' | 'cf' | 'luogu' | 'leetcode'`）作为**全局唯一题源状态**。`App.vue` 的 `<RouterView />` 没有 keep-alive、切页会重新挂载，读写同一个 store 就自然联动，因此**没有引入事件总线，也没有把题源存到后端**。
+- **界面**：推荐区上方新增一行题源按钮（全部 / Codeforces / 洛谷 / 力扣），右侧文案「与题库页同步：当前推荐全部平台」／「当前只推荐 洛谷」；非「全部」时推荐面板标题旁标注「仅 洛谷」、「已练习标签」标题追加「（仅 洛谷）」、未练习空态文案改为「洛谷中没有符合条件的未练习题目」。
+- **请求链路**：`recommend:get` 与 `stats:tagUsage` 各加一个 `source` 参数（**复用已有通道，仅扩展参数**）；`ProblemsRepo.tagUsage(tagFilter?, source)` 把题源条件和标签条件用 `AND` 拼进同一条 SQL；`practicedTags()` 透传 `source` 并把它并入缓存键，避免「切到洛谷后仍看到全平台计数」；`source` 在 `mergeRecommendSettings()` 里归一化，只接受 `cf/luogu/leetcode`，非法值退化为 `all`，防止脏值把推荐静默清空。
+- **顺带小修**：`ProblemsStore.setSource()` 改为 `void this.setFilter(next).catch(() => undefined)`，不再因模板直接调用 action 抛出未处理的 Promise 拒绝。
+
+数据实测（本机 31764 题、三源）：切到洛谷后未练习推荐为 `P1001 A+B Problem`、`P3374 树状数组 1`。
+
+测试 **474/474（43 文件）**、`verify:gui` **105/105**（新增 6 项）、`verify:smoke` **33/33**。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §22。
 
 ### v1.15.0
 本版修两个用户反馈：**首页「未练习」推荐被同一道题填满**、**STL 速查缺「初始化 / 清空 / 释放内存」写法**。**无新增数据表、无新增 IPC、无新增设置项**，覆盖安装即可。

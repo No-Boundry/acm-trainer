@@ -576,6 +576,16 @@ async function main() {
   // 4f-3) 首页：已练习标签 + 推荐习题（v1.14 FR-31~FR-33）
   await win.locator('.nav-item', { hasText: '首页' }).click()
   await win.waitForTimeout(2000)
+  // v1.16：题源是全局共享状态，前面对题库的走查可能停在洛谷/力扣；
+  // 先归位到「全部」，否则首页推荐（含已练习标签）会按上一页的题源收窄。
+  const homeAllBtn = win.locator('[data-rec-source="all"]')
+  if ((await homeAllBtn.count()) > 0) {
+    const onAll = await homeAllBtn.first().evaluate((el) => el.classList.contains('on'))
+    if (!onAll) {
+      await homeAllBtn.first().click()
+      await win.waitForTimeout(1800)
+    }
+  }
   const recPanel = win.locator('[data-panel="recommend"]')
   check('首页出现「推荐习题」面板', (await recPanel.count()) > 0)
   check('推荐分「已练习 / 未练习」两栏', (await win.locator('[data-rec="practiced"]').count()) > 0 && (await win.locator('[data-rec="fresh"]').count()) > 0)
@@ -611,6 +621,43 @@ async function main() {
     check('「清空筛选」后提示消失', (await win.locator('.filter-hint').count()) === 0)
   }
   await win.screenshot({ path: path.join(OUT, '15-dashboard-recommend.png') })
+
+  // 4f-4) v1.16：首页推荐与题库页共用同一个题源（联动，不是各自独立的筛选器）
+  const srcBtns = await win.locator('[data-rec-source]').count()
+  check('首页推荐提供题源筛选（全部 / CF / 洛谷 / 力扣）', srcBtns === 4, `按钮=${srcBtns}`)
+  await win.locator('[data-rec-source="luogu"]').click()
+  await win.waitForTimeout(1600)
+  const scopedText = ((await win.locator('[data-rec-scope]').innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check('切到洛谷后推荐区标注「仅 洛谷」', /洛谷/.test(scopedText), scopedText)
+  const lgIds = (await win.locator('[data-rec="fresh"] .rec-item .pid').allInnerTexts()).map((t) => t.trim())
+  check(
+    '切到洛谷后未练习推荐只剩洛谷题（P 开头题号）',
+    lgIds.length === 0 || lgIds.every((t) => /^P\d/.test(t)),
+    lgIds.join(',') || '（无未练习推荐）'
+  )
+  // 联动：题库页的题源分段应跟随切到洛谷
+  await win.locator('.nav-item', { hasText: '题库' }).click()
+  await win.waitForTimeout(1800)
+  const lgSegActive = ((await win.locator('.source-switch .seg.on').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check('题库页题源跟随首页切换（同一状态，联动生效）', /洛谷/.test(lgSegActive), lgSegActive)
+  // 清掉上一段「技能树跳转」留下的知识点筛选，才能看到洛谷题列表
+  const clearSelBtn = win.locator('button', { hasText: '全部清空' })
+  if ((await clearSelBtn.count()) > 0) {
+    await clearSelBtn.first().click()
+    await win.waitForTimeout(1400)
+  }
+  const lgRows = (await win.locator('tbody tr td:nth-child(2)').allInnerTexts()).map((t) => t.trim()).filter(Boolean)
+  check(
+    '题库列表也确实筛到洛谷题',
+    lgRows.length > 0 && lgRows.every((t) => /^P\d/.test(t)),
+    lgRows.slice(0, 5).join(',') || '（空列表）'
+  )
+  await win.screenshot({ path: path.join(OUT, '15b-source-linked.png') })
+  // 切回「全部」，避免影响后续检查项
+  await win.locator('.source-switch .seg', { hasText: '全部' }).first().click()
+  await win.waitForTimeout(1200)
+  const allRows = (await win.locator('tbody tr td:nth-child(2)').allInnerTexts()).map((t) => t.trim()).filter(Boolean)
+  check('切回「全部」后题库恢复三源混合', allRows.some((t) => /^\d+:/.test(t)), allRows.slice(0, 5).join(','))
 
   // 设置页：推荐习题设置项（v1.14 FR-33）
   await win.locator('.nav-item', { hasText: '设置' }).click()

@@ -5,6 +5,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import { createPinia, setActivePinia } from 'pinia'
 import { IpcChannels } from '@shared/channels'
 import DashboardPage from '@/pages/DashboardPage.vue'
+import { useProblemsStore } from '@/stores/problems'
 import type { RecommendResult, RecommendedProblem, StatsResult, TagUsage } from '@shared/types'
 
 /**
@@ -100,6 +101,9 @@ function setupApi(settings: Record<string, string> = {}) {
           return { ok: true, data: settings }
         case IpcChannels.StatsTagUsage:
           return { ok: true, data: tagUsage }
+        case IpcChannels.ProblemsList:
+          // v1.16：切换题源会通过共享 store 触发一次题库列表刷新
+          return { ok: true, data: { total: 0, items: [] } }
         case IpcChannels.RecommendGet: {
           const p = (payload ?? {}) as { filterTags?: string[] }
           return { ok: true, data: makeRec(p.filterTags ?? []) }
@@ -131,12 +135,14 @@ async function settle(until?: () => boolean): Promise<void> {
   }
 }
 
-async function mountPage(settings: Record<string, string> = {}) {
+async function mountPage(settings: Record<string, string> = {}, pinia = createPinia()) {
   const { api, calls } = setupApi(settings)
   const router = createRouter({ history: createWebHashHistory(), routes: [{ path: '/:p(.*)*', component: { template: '<div/>' } }] })
-  const wrapper = mount(DashboardPage, { global: { plugins: [router, createPinia()] } })
+  // 复用同一个 pinia 实例，测试里才能观察到首页写回共享 store 的题源
+  setActivePinia(pinia)
+  const wrapper = mount(DashboardPage, { global: { plugins: [router, pinia] } })
   await settle(() => wrapper.findAll('.rec-item').length > 0)
-  return { wrapper, api, calls, router }
+  return { wrapper, api, calls, router, pinia }
 }
 
 function recCalls(calls: { channel: string; payload: unknown }[]) {
@@ -214,13 +220,14 @@ describe('首页推荐习题（v1.14 FR-31~FR-33）', () => {
     await flushPromises()
     const after = recCalls(calls)
     expect(after.length).toBe(2)
-    expect(after[1].payload).toEqual({ filterTags: ['greedy'] })
+    // v1.16：请求体始终带当前题源（默认全部）
+    expect(after[1].payload).toEqual({ filterTags: ['greedy'], source: 'all' })
     expect(wrapper.find('.tag-chip').classes()).toContain('on')
     expect(wrapper.find('.filter-hint').text()).toContain('greedy')
 
     await wrapper.find('.tag-chip').trigger('click')
     await flushPromises()
-    expect(recCalls(calls)[2].payload).toEqual({ filterTags: [] })
+    expect(recCalls(calls)[2].payload).toEqual({ filterTags: [], source: 'all' })
   })
 
   it('「清空筛选」按钮清除已选标签', async () => {
@@ -232,7 +239,7 @@ describe('首页推荐习题（v1.14 FR-31~FR-33）', () => {
     await clearBtn!.trigger('click')
     await flushPromises()
     expect(wrapper.find('.filter-hint').exists()).toBe(false)
-    expect(recCalls(calls).at(-1)!.payload).toEqual({ filterTags: [] })
+    expect(recCalls(calls).at(-1)!.payload).toEqual({ filterTags: [], source: 'all' })
   })
 
   it('设置里关闭「显示已练习标签」后不渲染标签面板', async () => {
@@ -258,5 +265,95 @@ describe('首页推荐习题（v1.14 FR-31~FR-33）', () => {
     await settle()
     expect(wrapper.text()).toContain('暂无推荐数据')
     expect(wrapper.find('[data-panel="recommend"]').exists()).toBe(true)
+  })
+})
+
+/**
+ * v1.16：首页推荐与题库页共用同一个题源状态。
+ * 关键行为：在任一页切题源，另一页跟着变（不是各自独立的筛选器）。
+ */
+describe('题源筛选（与题库页联动，v1.16）', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    setActivePinia(createPinia())
+    delete (window as unknown as { api?: unknown }).api
+  })
+
+  it('默认「全部」，四个题源按钮齐全且全部高亮', async () => {
+    const { wrapper } = await mountPage()
+    const btns = wrapper.findAll('[data-rec-source]')
+    expect(btns.map((b) => b.attributes('data-rec-source'))).toEqual([
+      'all',
+      'cf',
+      'luogu',
+      'leetcode'
+    ])
+    expect(btns[0].classes()).toContain('on')
+    expect(wrapper.find('[data-lib-filter]').text()).toContain('当前推荐全部平台')
+    // 未筛题源时不显示「仅 xxx」范围提示
+    expect(wrapper.find('[data-rec-scope]').exists()).toBe(false)
+  })
+
+  it('切到洛谷：推荐与标签统计都带 source=luogu 重新请求', async () => {
+    const { wrapper, calls } = await mountPage()
+    await wrapper.find('[data-rec-source="luogu"]').trigger('click')
+    await settle(() => recCalls(calls).length > 1)
+
+    expect(recCalls(calls).at(-1)!.payload).toEqual({ filterTags: [], source: 'luogu' })
+    const tagCall = calls.filter((c) => c.channel === IpcChannels.StatsTagUsage).at(-1)!
+    expect(tagCall.payload).toEqual({ source: 'luogu' })
+    expect(wrapper.find('[data-rec-source="luogu"]').classes()).toContain('on')
+    expect(wrapper.find('[data-rec-source="all"]').classes()).not.toContain('on')
+    expect(wrapper.find('[data-rec-scope]').text()).toContain('洛谷')
+    expect(wrapper.find('[data-lib-filter]').text()).toContain('当前只推荐 洛谷')
+  })
+
+  it('切换题源写回共享 store（题库页读到同一个值）', async () => {
+    const { wrapper } = await mountPage()
+    const problems = useProblemsStore()
+    expect(problems.filter.source).toBe('all')
+
+    await wrapper.find('[data-rec-source="cf"]').trigger('click')
+    await flushPromises()
+
+    expect(problems.filter.source).toBe('cf')
+    // 沿用题库页既有规则：切源时清掉与源无关的难度筛选
+    expect(problems.filter.difficulty ?? null).toBe(null)
+  })
+
+  it('题库页先切到洛谷，首页推荐直接按洛谷请求', async () => {
+    const pinia = createPinia()
+    setActivePinia(pinia)
+    useProblemsStore().filter.source = 'luogu'
+
+    const { wrapper, calls } = await mountPage({}, pinia)
+    expect(recCalls(calls)[0].payload).toEqual({ filterTags: [], source: 'luogu' })
+    expect(calls.filter((c) => c.channel === IpcChannels.StatsTagUsage)[0].payload).toEqual({
+      source: 'luogu'
+    })
+    expect(wrapper.find('[data-rec-source="luogu"]').classes()).toContain('on')
+  })
+
+  it('未练习空态按当前题源给出提示文案', async () => {
+    const { wrapper, api } = await mountPage()
+    // 让推荐返回空列表 + 已切到力扣
+    await wrapper.find('[data-rec-source="leetcode"]').trigger('click')
+    await settle()
+    api.invoke.mockImplementation(async (channel: string) => {
+      if (channel === IpcChannels.RecommendGet) {
+        const empty = makeRec()
+        empty.fresh = []
+        empty.practiced = []
+        return { ok: true, data: empty }
+      }
+      if (channel === IpcChannels.StatsTagUsage) return { ok: true, data: [] }
+      if (channel === IpcChannels.RecordsStats) return { ok: true, data: stats }
+      if (channel === IpcChannels.RecordsList) return { ok: true, data: { total: 0, items: [] } }
+      if (channel === IpcChannels.ProblemsList) return { ok: true, data: { total: 0, items: [] } }
+      return { ok: true, data: {} }
+    })
+    await wrapper.findAll('button').find((b) => b.text().includes('换一批'))!.trigger('click')
+    await settle()
+    expect(wrapper.find('[data-rec="fresh"]').text()).toContain('力扣中没有符合条件的未练习题目')
   })
 })

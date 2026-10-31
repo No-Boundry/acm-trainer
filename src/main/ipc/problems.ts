@@ -36,8 +36,15 @@ export function registerProblemsIpc(repos: Repos): void {
   handle<unknown, string[]>(IpcChannels.ProblemsTags, () => repos.problems.allTags())
 
   // v1.14 FR-32：标签使用情况（已练习 / 已 AC / 最近练习），供技能树与题库「显示已练习标签」
-  handle<{ knowledgeIds?: string[] } | undefined, TagUsage[]>(
+  // v1.16：带 source 时只统计该题源（首页推荐与题库页共用同一个题源筛选）
+  handle<{ knowledgeIds?: string[]; source?: string } | undefined, TagUsage[]>(
     IpcChannels.StatsTagUsage,
-    (req) => practicedTags(repos, [...(req?.knowledgeIds ?? [])])
+    (req) => {
+      const source =
+        req?.source === 'cf' || req?.source === 'luogu' || req?.source === 'leetcode'
+          ? req.source
+          : 'all'
+      return practicedTags(repos, [...(req?.knowledgeIds ?? [])], source)
+    }
   )
 }

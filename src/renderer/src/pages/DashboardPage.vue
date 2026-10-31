@@ -3,11 +3,13 @@ import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { invoke } from '@/api/ipc'
 import { useUserStore } from '@/stores/user'
+import { useProblemsStore } from '@/stores/problems'
 import { IpcChannels } from '@shared/channels'
 import { PRACTICED_ORDER_LABELS, FRESH_ORDER_LABELS } from '@shared/types'
 import type {
   PracticeRecord,
   PracticeState,
+  ProblemSource,
   RatingBreakdown,
   RatingSnapshot,
   RecommendResult,
@@ -18,6 +20,8 @@ import type {
 
 const user = useUserStore()
 const router = useRouter()
+/** v1.16：题源与题库页共用同一个 store 状态（在题库切到洛谷，这里也只看洛谷） */
+const problems = useProblemsStore()
 const stats = ref<StatsResult | null>(null)
 const rating = ref<(RatingBreakdown & { history: RatingSnapshot[] }) | null>(null)
 const recent = ref<PracticeRecord[]>([])
@@ -43,11 +47,34 @@ const freshOrderText = computed(() =>
 const practicedTagChips = computed(() => tags.value.filter((t) => t.acProblems > 0))
 const untouchedTagChips = computed(() => tags.value.filter((t) => t.acProblems === 0 && t.attempted > 0))
 
+/** v1.16：推荐面板的题源选项（与题库页完全一致的四档） */
+const SOURCE_OPTIONS: { value: 'all' | ProblemSource; label: string }[] = [
+  { value: 'all', label: '全部' },
+  { value: 'cf', label: 'Codeforces' },
+  { value: 'luogu', label: '洛谷' },
+  { value: 'leetcode', label: '力扣' }
+]
+const currentSource = computed<'all' | ProblemSource>(
+  () => (problems.filter.source ?? 'all') as 'all' | ProblemSource
+)
+const sourceLabel = computed(
+  () => SOURCE_OPTIONS.find((s) => s.value === currentSource.value)?.label ?? '全部'
+)
+
+/** 切换题源：写回共享 store（题库页随之切换），再按新口径重取推荐与标签统计 */
+function pickSource(source: 'all' | ProblemSource): void {
+  if (currentSource.value === source) return
+  problems.setSource(source)
+  void loadRecommend()
+  void loadTags()
+}
+
 async function loadRecommend(): Promise<void> {
   recLoading.value = true
   try {
     rec.value = await invoke<RecommendResult>(IpcChannels.RecommendGet, {
-      filterTags: [...selectedTags.value]
+      filterTags: [...selectedTags.value],
+      source: currentSource.value
     })
   } catch {
     rec.value = null
@@ -59,7 +86,7 @@ async function loadRecommend(): Promise<void> {
 async function loadTags(): Promise<void> {
   try {
     const [list, all] = await Promise.all([
-      invoke<TagUsage[]>(IpcChannels.StatsTagUsage),
+      invoke<TagUsage[]>(IpcChannels.StatsTagUsage, { source: currentSource.value }),
       invoke<Record<string, string>>(IpcChannels.SettingsGetAll)
     ])
     tags.value = list
@@ -175,12 +202,38 @@ const statusColor: Record<string, string> = {
         <p class="dim small">综合 = 0.7×CF练习分 + 0.3×比赛分（本地参考值）；洛谷练习分为独立参考，不并入</p>
       </div>
 
+      <!-- v1.16：题源筛选（与题库页共用同一个状态，切换后两页同时生效） -->
+      <div class="lib-filter" data-lib-filter>
+        <span class="dim small">题源</span>
+        <div
+          class="rec-sources"
+          data-rec-sources
+          title="与题库页共用同一个题源：在这里切换，题库页也会切到同一平台"
+        >
+          <button
+            v-for="s in SOURCE_OPTIONS"
+            :key="s.value"
+            class="seg mini-seg"
+            :class="{ on: currentSource === s.value }"
+            :data-rec-source="s.value"
+            @click="pickSource(s.value)"
+          >
+            {{ s.label }}
+          </button>
+        </div>
+        <span class="dim small">
+          与题库页同步：{{ currentSource === 'all' ? '当前推荐全部平台' : `当前只推荐 ${sourceLabel}` }}
+        </span>
+      </div>
+
       <!-- 已练习标签（v1.14 FR-32） -->
       <div v-if="showTags && practicedTagChips.length" class="panel tag-panel">
         <div class="panel-head">
           <h4>已练习标签</h4>
           <span class="dim small">
-            共 {{ practicedTagChips.length }} 个知识点标签已练过（点标签可筛选下方推荐）
+            共 {{ practicedTagChips.length }} 个知识点标签已练过<template v-if="currentSource !== 'all'">（仅 {{
+              sourceLabel
+            }}）</template>（点标签可筛选下方推荐）
           </span>
           <button v-if="selectedTags.length" class="btn ghost mini" @click="clearTags">
             清空筛选（{{ selectedTags.length }}）
@@ -205,10 +258,13 @@ const statusColor: Record<string, string> = {
         </div>
       </div>
 
-      <!-- 推荐习题（v1.14 FR-31） -->
+      <!-- 推荐习题（v1.14 FR-31；v1.16 与题库页共用题源筛选） -->
       <div class="panel rec-panel" data-panel="recommend">
         <div class="panel-head">
           <h4>推荐习题</h4>
+          <span v-if="currentSource !== 'all'" class="dim small" data-rec-scope>
+            仅 {{ sourceLabel }}
+          </span>
           <span v-if="selectedTags.length" class="filter-hint">筛选：{{ selectedTags.join(' / ') }}</span>
           <span class="grow" />
           <button class="btn ghost mini" :disabled="recLoading" @click="loadRecommend">
@@ -252,7 +308,9 @@ const statusColor: Record<string, string> = {
                 <span class="reason">{{ p.reason.text }}</span>
               </li>
             </ul>
-            <p v-else class="dim small">题库中没有符合条件的未练习题目</p>
+            <p v-else class="dim small">
+              {{ currentSource === 'all' ? '题库' : sourceLabel }}中没有符合条件的未练习题目
+            </p>
           </section>
         </div>
       </div>
@@ -464,6 +522,41 @@ const statusColor: Record<string, string> = {
 .in-list {
   font-size: 11px;
   flex: none;
+}
+/* v1.16：推荐面板的题源切换（与题库页同一套状态） */
+.lib-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+.rec-sources {
+  display: inline-flex;
+  gap: 4px;
+}
+.mini-seg {
+  font-size: 12px;
+  padding: 2px 9px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.mini-seg:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+.mini-seg.on {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
 }
 .mini {
   font-size: 12px;

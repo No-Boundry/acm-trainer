@@ -387,3 +387,70 @@ describe('全量读取不得被 200 钳制（v1.14.1）', () => {
     expect(all[all.length - 1].id).not.toBe(all[0].id)
   })
 })
+
+/**
+ * v1.16：首页推荐的题源筛选要与题库页共用同一个题源，
+ * 标签统计（已练习 / 已 AC / 题库题数）也必须按题源收窄，
+ * 否则「切到洛谷」后仍会看到 CF 的计数。
+ */
+describe('标签统计按题源收窄（v1.16）', () => {
+  it('tagUsage 传 source 时只统计该平台题目', () => {
+    const problems = new ProblemsRepo(db)
+    problems.upsertMany(
+      [
+        { contestId: 1, index: 'A', name: 'CF A', rating: 1500, solvedCount: 10, tags: ['dp'] },
+        { contestId: 2, index: 'B', name: 'CF B', rating: 1600, solvedCount: 20, tags: ['dp'] },
+        {
+          contestId: 0,
+          index: 'P1001',
+          name: 'LG 1',
+          rating: null,
+          difficulty: 2,
+          solvedCount: 30,
+          source: 'luogu',
+          tags: ['dp']
+        }
+      ],
+      '2026-01-01 00:00:00'
+    )
+    const records = new RecordsRepo(db)
+    // CF 题 id 形如 `contestId:index`（1:A），洛谷题 id 就是 pid
+    records.create({ problemId: '1:A', status: 'AC' })
+    records.create({ problemId: 'P1001', status: 'AC' })
+
+    expect(problems.tagUsage(['dp']).find((t) => t.tag === 'dp')?.totalProblems).toBe(3)
+
+    const dpCf = problems.tagUsage(['dp'], 'cf').find((t) => t.tag === 'dp')!
+    expect(dpCf.totalProblems).toBe(2)
+    expect(dpCf.acProblems).toBe(1)
+
+    const dpLg = problems.tagUsage(['dp'], 'luogu').find((t) => t.tag === 'dp')!
+    expect(dpLg.totalProblems).toBe(1)
+    expect(dpLg.acProblems).toBe(1)
+    expect(dpLg.progress).toBe(1)
+  })
+
+  it('题源与标签条件同时生效（AND 而不是 OR）', () => {
+    const problems = new ProblemsRepo(db)
+    problems.upsertMany(
+      [
+        { contestId: 1, index: 'A', name: 'CF dp', rating: 1500, solvedCount: 1, tags: ['dp'] },
+        { contestId: 1, index: 'B', name: 'CF greedy', rating: 1500, solvedCount: 1, tags: ['greedy'] },
+        {
+          contestId: 0,
+          index: 'P1',
+          name: 'LG dp',
+          rating: null,
+          difficulty: 3,
+          solvedCount: 1,
+          source: 'luogu',
+          tags: ['dp']
+        }
+      ],
+      '2026-01-01 00:00:00'
+    )
+    const rows = problems.tagUsage(['dp'], 'cf')
+    expect(rows.map((r) => r.tag)).toEqual(['dp'])
+    expect(rows[0].totalProblems).toBe(1)
+  })
+})

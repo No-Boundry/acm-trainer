@@ -406,9 +406,20 @@ export class ProblemsRepo {
    * - lastAt：最近一次练习时间
    * - totalProblems：题库中带该标签的题数（含未练习）
    * @param tagFilter 仅统计这些标签（不传 = 全部）
+   * @param source v1.16：只统计该题源（'all' = 全部），与题库页的题源筛选保持一致
    */
-  tagUsage(tagFilter?: string[]): TagUsage[] {
-    const where = tagFilter && tagFilter.length > 0 ? `WHERE t.name IN (${tagFilter.map(() => '?').join(', ')})` : ''
+  tagUsage(tagFilter?: string[], source: 'all' | ProblemSource = 'all'): TagUsage[] {
+    const conds: string[] = []
+    const params: (string | number)[] = []
+    if (tagFilter && tagFilter.length > 0) {
+      conds.push(`t.name IN (${tagFilter.map(() => '?').join(', ')})`)
+      params.push(...tagFilter)
+    }
+    if (source !== 'all') {
+      conds.push('p.source = ?')
+      params.push(source)
+    }
+    const where = conds.length > 0 ? `WHERE ${conds.join(' AND ')}` : ''
     const rows = this.db
       .prepare(
         `SELECT t.name AS tag,
@@ -423,7 +434,7 @@ export class ProblemsRepo {
            ${where}
           GROUP BY t.id`
       )
-      .all(...(tagFilter ?? [])) as {
+      .all(...params) as {
       tag: string
       totalProblems: number
       attempted: number

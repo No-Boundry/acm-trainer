@@ -571,3 +571,43 @@ describe('未练习推荐：solvedCount=0 与同名题（v1.15 回归）', () =>
     expect(out.map((r) => r.problem.id)).toEqual(['X1', 'X2', 'X3'])
   })
 })
+
+/**
+ * v1.16：题源筛选（首页推荐与题库页共用同一个题源）。
+ * mergeRecommendSettings 负责把非法题源退化为「全部」，避免推荐列表被静默清空。
+ */
+describe('题源筛选（v1.16）', () => {
+  it('合法题源原样保留', () => {
+    for (const source of ['cf', 'luogu', 'leetcode'] as const) {
+      expect(mergeRecommendSettings({}, { source }).source).toBe(source)
+    }
+    expect(mergeRecommendSettings({}, { source: 'all' }).source).toBe('all')
+  })
+
+  it('未传题源时默认为「全部」', () => {
+    expect(mergeRecommendSettings({}, {}).source).toBe('all')
+  })
+
+  it('非法题源退化为「全部」（不把推荐清空）', () => {
+    const invalid = { source: 'codeforces' } as unknown as { source: 'cf' }
+    expect(mergeRecommendSettings({}, invalid).source).toBe('all')
+  })
+
+  it('题源进入 buildRecommendation 后只保留该平台题目', () => {
+    const cf = problem({ id: '1A', source: 'cf' })
+    const luogu = problem({ id: 'P1001', source: 'luogu' })
+    const r = buildRecommendation(
+      {
+        problems: [cf, luogu],
+        records: [],
+        nodes: [],
+        listNamesOf: () => [],
+        dueReviewIds: new Set<string>()
+      },
+      mergeRecommendSettings({}, { source: 'luogu', freshLimit: 5 })
+    )
+    const ids = r.fresh.map((x) => x.problem.id)
+    expect(ids).toEqual(['P1001'])
+    expect(ids).not.toContain('1A')
+  })
+})

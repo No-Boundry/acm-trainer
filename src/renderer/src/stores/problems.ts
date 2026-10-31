@@ -239,7 +239,8 @@ export const useProblemsStore = defineStore('problems', {
       next.difficulty = null
       // 按题号排序时默认升序更符合直觉
       if ((this.filter.sortBy ?? 'rating') === 'id') next.sortDir = 'asc'
-      this.setFilter(next)
+      // 错误由调用方按需提示；这里吞掉 rejection，避免模板直接调用时产生未处理的 Promise 拒绝
+      void this.setFilter(next).catch(() => undefined)
     },
     /** 切换排序方式（v1.9.1）：按题号 → 升序；按难度 / 按 AC 数 → 降序 */
     setSortBy(

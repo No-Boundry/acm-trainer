@@ -3,6 +3,7 @@ import type {
   FreshOrder,
   PracticedOrder,
   ProblemRow,
+  ProblemSource,
   RecommendInput,
   RecommendResult,
   SkillNodeReport,
@@ -93,6 +94,11 @@ export function mergeRecommendSettings(
   }
   return {
     ...input,
+    // v1.16：题源只接受已知值（非法值退化为全部，避免推荐列表被静默清空）
+    source:
+      input.source === 'cf' || input.source === 'luogu' || input.source === 'leetcode'
+        ? input.source
+        : 'all',
     practicedOrder: pickOrder<PracticedOrder>(practicedOrder, PRACTICED_ORDER_LABELS),
     freshOrder: pickOrder<FreshOrder>(freshOrder, FRESH_ORDER_LABELS),
     practicedLimit: clampLimit(input.practicedLimit) ?? clampLimit(settings.recommendPracticedLimit),
@@ -170,7 +176,11 @@ export function recommendProblems(repos: Repos, input: RecommendInput = {}): Rec
  */
 const tagUsageCache = new Map<string, { at: number; rows: TagUsage[] }>()
 
-export function practicedTags(repos: Repos, knowledgeIds: string[] = []): TagUsage[] {
+export function practicedTags(
+  repos: Repos,
+  knowledgeIds: string[] = [],
+  source: 'all' | ProblemSource = 'all'
+): TagUsage[] {
   const nodes = reportNodes(repos)
   const wanted = new Set<string>()
   if (knowledgeIds.length > 0) {
@@ -180,12 +190,13 @@ export function practicedTags(repos: Repos, knowledgeIds: string[] = []): TagUsa
   }
   const tags = [...wanted]
   if (tags.length === 0) return []
-  const key = `${libraryKey(repos)}|${repos.records.count()}|${tags.slice().sort().join(',')}`
+  // v1.16：题源参与缓存键，避免「切到洛谷后仍看到全平台计数」
+  const key = `${libraryKey(repos)}|${repos.records.count()}|${source}|${tags.slice().sort().join(',')}`
   const now = Date.now()
   const hit = tagUsageCache.get(key)
   if (hit && now - hit.at < LEAN_TTL_MS) return hit.rows
   const rows = repos.problems
-    .tagUsage(tags)
+    .tagUsage(tags, source)
     .sort(
       (a, b) =>
         Number(b.acProblems > 0) - Number(a.acProblems > 0) ||
