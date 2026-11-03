@@ -83,13 +83,13 @@ interface ListPayload {
   tagsAny?: string[]
 }
 
-function setupApi() {
+function setupApi(rows: ProblemRow[] = [row]) {
   const listPayloads: ListPayload[] = []
   const api = {
     invoke: vi.fn(async (channel: string) => {
       const handlers: Record<string, () => unknown> = {
         [IpcChannels.SkillGet]: () => ({ nodes: skillNodes(), recommendedIds: ['greedy'], allDone: false }),
-        [IpcChannels.ProblemsList]: (() => ({ total: 1, items: [row] })) as unknown as () => unknown,
+        [IpcChannels.ProblemsList]: (() => ({ total: rows.length, items: rows })) as unknown as () => unknown,
         [IpcChannels.ProblemsTags]: () => ['greedy', 'dp'],
         [IpcChannels.ProblemsLastSync]: () => ({ cf: '2026-09-01 00:00:00', luogu: null })
       }
@@ -119,8 +119,8 @@ function makeRouter() {
   })
 }
 
-async function mountPage(query: Record<string, string> = {}) {
-  const ctx = setupApi()
+async function mountPage(query: Record<string, string> = {}, rows: ProblemRow[] = [row]) {
+  const ctx = setupApi(rows)
   const router = makeRouter()
   await router.push({ path: '/problems', query })
   await router.isReady()
@@ -256,6 +256,73 @@ describe('ProblemsPage 知识点筛选（v1.13 并入标签分栏）', () => {
     const first = listPayloads[0]
     expect(first.tags ?? []).toEqual([])
     expect(first.tagsAny).toBeUndefined()
+    wrapper.unmount()
+  })
+})
+
+describe('ProblemsPage 标签命中数（v1.17 并集 + 按命中数排序）', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks()
+    delete (window as unknown as { api?: unknown }).api
+  })
+
+  const multiTagRow: ProblemRow = {
+    ...row,
+    id: '1:E',
+    index: 'E',
+    name: 'Greedy + DP',
+    rating: 1200,
+    tags: ['greedy', '贪心', 'dp']
+  }
+
+  it('命中多个标签时显示「命中 N/M」角标', async () => {
+    const { wrapper } = await mountPage({}, [multiTagRow])
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!.trigger('click')
+    await flushPromises()
+    // 贪心节点两个标签 greedy + 贪心，题目都命中 → 2/2
+    const badge = wrapper.find('.mini-tag.match')
+    expect(badge.exists()).toBe(true)
+    expect(badge.text()).toBe('命中 2/2')
+    expect(badge.attributes('title')).toContain('2 / 2')
+    wrapper.unmount()
+  })
+
+  it('「已选」条提示并集与命中数排序', async () => {
+    const { wrapper } = await mountPage({}, [multiTagRow])
+    await wrapper.findAll('.seg-tab')[0].trigger('click')
+    await flushPromises()
+    await wrapper.findAll('.kn-chip').find((c) => c.text().includes('贪心'))!.trigger('click')
+    await flushPromises()
+    const hint = wrapper.find('.match-hint')
+    expect(hint.exists()).toBe(true)
+    expect(hint.text()).toContain('取并集')
+    expect(hint.text()).toContain('命中标签越多越靠前')
+    wrapper.unmount()
+  })
+
+  it('只选一个标签时不显示命中角标与提示（无排序意义）', async () => {
+    const { wrapper } = await mountPage({}, [row])
+    // 走标签分栏：逐个 Tab 找第一个可点标签，点 1 个即停
+    const tabs = wrapper.findAll('.seg-tab')
+    let clicked = false
+    for (const tab of tabs) {
+      if (tab.text().includes('知识点')) continue
+      await tab.trigger('click')
+      await flushPromises()
+      const chip = wrapper.findAll('.tag-row .chip')[0]
+      if (!chip) continue
+      await chip.trigger('click')
+      await flushPromises()
+      clicked = true
+      break
+    }
+    expect(clicked).toBe(true)
+    // 只选了 1 个标签 → 不显示命中角标与提示
+    expect(wrapper.findAll('.sel-line .chip').length).toBe(1)
+    expect(wrapper.find('.mini-tag.match').exists()).toBe(false)
+    expect(wrapper.find('.match-hint').exists()).toBe(false)
     wrapper.unmount()
   })
 })

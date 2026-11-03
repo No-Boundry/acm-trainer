@@ -4,8 +4,9 @@ import { ProblemsRepo } from '../../src/main/db/repositories/problems'
 import type { Database } from 'better-sqlite3'
 
 /**
- * 题库筛选：v1.8 新增 tagsAny（OR 语义）用于「知识点」多选并集筛选，
- * 与原 tags（AND 语义）共存互不影响。
+ * 题库筛选：tagsAny（v1.8 引入）与 tags 都是**并集**语义（命中任一标签即可）。
+ * v1.17 起 tags 也从交集改为并集，并按命中标签数降序排列（见 problems-tag-union.test.ts）；
+ * 两者可叠加：同一道题既要命中 tags 里的任一标签，又要命中 tagsAny 里的任一标签。
  */
 
 let db: Database.Database
@@ -34,7 +35,7 @@ describe('problems:list 标签过滤语义', () => {
     expect(ids).toEqual(['1:A', '1:B', '1:C'])
   })
 
-  it('tagsAny 与 tags（AND）叠加：两者同时满足', () => {
+  it('tags 与 tagsAny 叠加：两组条件各自取并集后再取交（都是「命中任一」）', () => {
     const r = repo.list({ page: 1, pageSize: 20, tags: ['dp'], tagsAny: ['graphs', 'sortings'] })
     // 需要含 dp，且含 graphs 或 sortings → 只有 1:C（dp+graphs）
     expect(r.total).toBe(1)

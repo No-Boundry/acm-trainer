@@ -1,12 +1,12 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.16.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-474%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-105%2F105-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.17.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-487%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-110%2F110-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.16.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.17.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,764 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
@@ -26,7 +26,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.16.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.17.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -36,7 +36,7 @@
 8. 到「⚙️ 设置 → 首页推荐习题」调两栏的**排序方式**与**条数（1–30）**，回首页立即生效；
 9. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
 
-📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`）
+📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`、v1.17 新增的标签并集截图 `04b-tags-union.png`）
 
 ## 常用命令
 
@@ -45,13 +45,13 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成/渲染测试（vitest，**474 例 / 43 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.16.0 为 **0 错误**） |
-| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**105/105 通过**：105 项断言 + 截图；v1.15.0 为 99 项、v1.14.1 为 95 项、v1.13.0 为 73 项） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**487 例 / 44 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.17.0 为 **0 错误**） |
+| `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**110/110 通过**：110 项断言 + 截图；v1.16.0 为 105 项、v1.15.0 为 99 项、v1.14.1 为 95 项、v1.13.0 为 73 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
-| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 4 张验收/补充截图——v1.14 二张、v1.16 新增 `15b-source-linked.png` 等，合计 28 张） |
+| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 5 张验收/补充截图——v1.14 二张、v1.16 `15b-source-linked.png`、v1.17 `04b-tags-union.png` 等，合计 29 张） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
 ## 文档
@@ -78,9 +78,9 @@ src/
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
-tests/             单元 / 集成 / 渲染组件测试（vitest，43 个文件 / 474 用例）
+tests/             单元 / 集成 / 渲染组件测试（vitest，44 个文件 / 487 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / **gui-perf**）与手册配图脚本（playwright-core）
-docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 28 张）
+docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10（含 images/ 截图 29 张）
 backup/            旧版项目归档
 ```
 
@@ -93,6 +93,18 @@ backup/            旧版项目归档
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
 ## 版本说明
+
+### v1.17.0
+本版把题库页的**标签筛选从交集改为并集**，并按**命中标签数降序**排序（命中越多越靠前，命中数相同再按你选的排序方式）。**无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。
+
+- **之前的现象**：标签是交集语义（题目必须同时带全部已选标签）。技能树里有些知识点节点关联多个标签（如「贪心」挂 `greedy` + `贪心`），点一个节点就等于同时勾上多个标签，常直接筛出 **0 题** —— 与「点节点 = 勾选它关联的全部标签」的预期相反。
+- **并集语义**：`buildWhere()` 的 `filter.tags` 分支由 `GROUP BY pt.problem_id HAVING COUNT(DISTINCT t.id) = <已选标签数>` 改为子查询并集 `p.id IN (SELECT pt.problem_id FROM problem_tags pt JOIN tags t ON t.id = pt.tag_id WHERE t.name IN (@tag0, …))`；未知标签在并集下被忽略，不再把列表清空。
+- **排序**：新增私有函数 `matchedTagsOrderPrefix(tags?: string[])`，未选标签时返回**空串**（ORDER BY 与旧版逐字符一致），有标签时返回命中数子查询作为 ORDER BY 前缀，拼到 `buildOrderSql()` 的 4 个 return 分支最前。它复用 `buildWhere()` 注册的 `@tagN`，因此**必须先 `buildWhere()` 再拼 ORDER BY**。
+- **界面**：命中数可见化 —— 已选标签 ≥ 2 个时，题目行标签区末尾显示琥珀色 `命中 N/M` 角标（`N` 命中数 / `M` 已选数），「已选」条提示「取并集 · 命中标签越多越靠前」；只选 1 个标签时两者都不出现。
+- **未动**：题单自动抽题用的 `filter.tagsAny` 本来就是并集，本版未改动；`problem_tags` 表结构与数据不变，**无数据迁移**。
+
+测试 **487/487（44 文件）**、`verify:gui` **110/110**（新增 5 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §23。
 
 ### v1.16.0
 本版把首页「推荐习题」与题库页的**题源（平台）筛选**合并成同一个状态：在哪边切题源，另一边都跟着变。**无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。

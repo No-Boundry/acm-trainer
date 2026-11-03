@@ -123,32 +123,52 @@ const ALL_ID_VALUE = `CASE p.source WHEN 'cf' THEN p."index" WHEN 'luogu' THEN p
 /**
  * 生成完整 ORDER BY 子句（含方向）。空值标记恒为 ASC（排最后），
  * 其余键使用 filter.sortDir。
+ *
+ * v1.17：选中标签时，「命中的筛选标签数」作为**第一排序键**（降序）——
+ * 标签筛选已从交集改为并集（见 buildWhere），命中越多越靠前，命中数相同时
+ * 再按用户选择的排序方式（难度 / 题号 / AC 数）排列。
  */
 export function buildOrderSql(filter: Omit<ProblemFilter, 'page' | 'pageSize'>): string {
   const dir = filter.sortDir === 'asc' ? 'ASC' : 'DESC'
   const source = filter.source
   const sortBy = filter.sortBy ?? 'rating'
+  // 命中标签数前缀（未选标签时为空串，行为与旧版完全一致）
+  const prefix = matchedTagsOrderPrefix(filter.tags)
   const parts: string[] = []
 
   if (sortBy === 'solvedCount') {
     // AC 数：无空值概念，直接按数值
-    return `p.solved_count ${dir}, p.id ${dir}`
+    return `${prefix}p.solved_count ${dir}, p.id ${dir}`
   }
 
   if (sortBy === 'rating') {
     if (source === 'cf' || source === 'luogu' || source === 'leetcode') {
       const [nullFlag, value] = DIFFICULTY_EXPR[source]
-      return `${nullFlag} ASC, ${value} ${dir}, p.id ${dir}`
+      return `${prefix}${nullFlag} ASC, ${value} ${dir}, p.id ${dir}`
     }
-    return `${SOURCE_GROUP_EXPR} ASC, ${ALL_DIFFICULTY_NULL} ASC, ${ALL_DIFFICULTY_VALUE} ${dir}, p.id ${dir}`
+    return `${prefix}${SOURCE_GROUP_EXPR} ASC, ${ALL_DIFFICULTY_NULL} ASC, ${ALL_DIFFICULTY_VALUE} ${dir}, p.id ${dir}`
   }
 
   // sortBy === 'id'（按题号）
   if (source === 'cf' || source === 'luogu' || source === 'leetcode') {
-    return [...ID_EXPR[source].map((expr) => `${expr} ${dir}`), `p.id ${dir}`].join(', ')
+    return prefix + [...ID_EXPR[source].map((expr) => `${expr} ${dir}`), `p.id ${dir}`].join(', ')
   }
   parts.push(`${SOURCE_GROUP_EXPR} ASC`, `${ALL_ID_GROUP} ${dir}`, `${ALL_ID_VALUE} ${dir}`, `p.id ${dir}`)
-  return parts.join(', ')
+  return prefix + parts.join(', ')
+}
+
+/**
+ * v1.17：命中标签数排序表达式（如 `(SELECT COUNT(DISTINCT t.id) …) DESC, `）。
+ *
+ * 占位符 `@tag0…` 与 `buildWhere()` 里并集筛选用的是同一批绑定参数，
+ * 所以调用方必须先用 buildWhere 拿到 params 再执行 SQL（list / candidates 都是这个顺序）。
+ */
+function matchedTagsOrderPrefix(tags: string[] | undefined): string {
+  if (!tags || tags.length === 0) return ''
+  const ph = tags.map((_, i) => `@tag${i}`).join(', ')
+  return `(SELECT COUNT(DISTINCT t.id) FROM problem_tags pt
+             JOIN tags t ON t.id = pt.tag_id
+            WHERE pt.problem_id = p.id AND t.name IN (${ph})) DESC, `
 }
 
 export class ProblemsRepo {
@@ -287,6 +307,9 @@ export class ProblemsRepo {
       conditions.push('(p.id LIKE @kw OR p.name LIKE @kw)')
       params.kw = `%${filter.keyword}%`
     }
+    // v1.17：标签筛选改为**并集**（命中任一标签即可）。此前是交集（HAVING COUNT = 标签数），
+    // 知识点挂的标签越多越容易筛出 0 题（例如「并查集」同时挂 dsu + 并查集 + 连通性…），
+    // 与技能树「点节点=勾选它关联的全部标签」的预期不符。命中数排序见 buildOrderSql。
     if (filter.tags && filter.tags.length > 0) {
       const placeholders = filter.tags.map((_, i) => `@tag${i}`).join(', ')
       conditions.push(
@@ -294,8 +317,6 @@ export class ProblemsRepo {
            SELECT pt.problem_id FROM problem_tags pt
            JOIN tags t ON t.id = pt.tag_id
            WHERE t.name IN (${placeholders})
-           GROUP BY pt.problem_id
-           HAVING COUNT(DISTINCT t.id) = ${filter.tags.length}
          )`
       )
       filter.tags.forEach((t, i) => {

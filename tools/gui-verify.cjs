@@ -573,6 +573,64 @@ async function main() {
   )
   await win.screenshot({ path: path.join(OUT, '11b-skill-tag-pick.png') })
 
+  // 4g) v1.17：标签筛选改为并集，并按命中标签数排序
+  const allSourceSeg = win.locator('.source-switch .seg', { hasText: '全部' }).first()
+  const sourceIsAll = await allSourceSeg.evaluate((el) => el.classList.contains('on')).catch(() => false)
+  if (!sourceIsAll) {
+    await allSourceSeg.click()
+    await win.waitForTimeout(1400)
+  }
+  const clearV117Btn = win.locator('button', { hasText: '全部清空' })
+  if ((await clearV117Btn.count()) > 0) {
+    await clearV117Btn.first().click()
+    await win.waitForTimeout(1200)
+  }
+  const pickTagByChip = async (name) => {
+    const tabs = win.locator('.seg-tab')
+    const n = await tabs.count()
+    for (let i = 0; i < n; i += 1) {
+      const tab = tabs.nth(i)
+      if (((await tab.innerText().catch(() => '')) || '').includes('知识点')) continue
+      await tab.click()
+      await win.waitForTimeout(500)
+      const chip = win
+        .locator('.tag-row .chip')
+        .filter({ hasText: new RegExp(`^${name}$`) })
+        .first()
+      if ((await chip.count()) > 0) {
+        await chip.click()
+        await win.waitForTimeout(1400)
+        return true
+      }
+    }
+    return false
+  }
+  const pickedDp = await pickTagByChip('dp')
+  const pickedGraphs = await pickTagByChip('graphs')
+  check('（v1.17）可同时勾选 dp 与 graphs 两个标签', pickedDp && pickedGraphs, `dp=${pickedDp} graphs=${pickedGraphs}`)
+  const selChipCount117 = await win.locator('.sel-line .chip').count()
+  check('（v1.17）已选条同时显示两个标签', selChipCount117 === 2, `已选 ${selChipCount117} 个`)
+  const matchHintText = ((await win.locator('.match-hint').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check(
+    '（v1.17）已选条提示取并集与命中数排序',
+    /取并集/.test(matchHintText) && /命中标签越多越靠前/.test(matchHintText),
+    matchHintText
+  )
+  const unionRows = await win.locator('tbody tr').count()
+  const unionIds = (await win.locator('tbody tr td:nth-child(2)').allInnerTexts()).map((t) => t.trim()).filter(Boolean)
+  check(
+    '（v1.17）并集命中两题且命中 2 个标签的排第一',
+    unionRows === 2 && unionIds[0] === '802:C' && unionIds[1] === '801:B',
+    `行数=${unionRows} 顺序=${unionIds.join(',')}`
+  )
+  const matchBadges = (await win.locator('tbody tr .mini-tag.match').allInnerTexts()).map((t) => t.trim())
+  check(
+    '（v1.17）命中数角标：802:C 为 2/2、801:B 为 1/2',
+    matchBadges[0] === '命中 2/2' && matchBadges[1] === '命中 1/2',
+    matchBadges.join(' | ')
+  )
+  await win.screenshot({ path: path.join(OUT, '04b-tags-union.png') })
+
   // 4f-3) 首页：已练习标签 + 推荐习题（v1.14 FR-31~FR-33）
   await win.locator('.nav-item', { hasText: '首页' }).click()
   await win.waitForTimeout(2000)

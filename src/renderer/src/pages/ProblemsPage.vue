@@ -72,6 +72,17 @@ function groupSelectedCount(tags: string[]): number {
   return tags.filter((t) => selectedTagsSet.has(t)).length
 }
 
+/**
+ * v1.17：某道题命中了几个已选标签（标签筛选为并集，命中越多排序越靠前）。
+ * 返回 0 表示当前没选标签，不显示角标。
+ */
+function matchCount(row: ProblemRow): number {
+  const selected = store.filter.tags ?? []
+  if (selected.length === 0) return 0
+  const set = new Set(selected)
+  return row.tags.reduce((n, t) => (set.has(t) ? n + 1 : n), 0)
+}
+
 /** 知识点 Tab 上的已选数量（按节点计） */
 const knTabCount = computed(() => store.knowledgeIds.length)
 
@@ -650,6 +661,7 @@ onMounted(() => {
             {{ tag }} ✕
           </button>
           <button class="btn ghost xs" @click="clearAllTagFilters()">全部清空</button>
+          <span v-if="selectedTags.length > 1" class="dim small match-hint">取并集 · 命中标签越多越靠前</span>
         </div>
 
         <!-- 知识点 Tab：按层分组的节点（保留掌握度色点与练习题数） -->
@@ -797,6 +809,11 @@ onMounted(() => {
               <span v-if="row.source === 'luogu'" class="mini-tag src">洛谷</span>
               <span v-else-if="row.source === 'leetcode'" class="mini-tag src lc">力扣</span>
               <span v-for="t in row.tags.slice(0, 4)" :key="t" class="mini-tag">{{ t }}</span>
+              <span
+                v-if="selectedTags.length > 1 && matchCount(row) > 0"
+                class="mini-tag match"
+                :title="`命中 ${matchCount(row)} / ${selectedTags.length} 个已选标签`"
+              >命中 {{ matchCount(row) }}/{{ selectedTags.length }}</span>
             </div>
           </td>
           <td>
@@ -1126,6 +1143,15 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 6px;
   align-items: center;
+}
+/* v1.17：标签并集筛选的「命中数」角标与提示 */
+.mini-tag.match {
+  background: rgba(249, 226, 175, 0.16);
+  border: 1px solid rgba(249, 226, 175, 0.45);
+  color: #f9e2af;
+}
+.match-hint {
+  margin-left: 2px;
 }
 .chip.on {
   background: var(--primary);
