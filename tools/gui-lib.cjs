@@ -63,18 +63,18 @@ function seedData(userDataDir) {
     800 + i * 50,
     null,
     'cf',
-    ['greedy', 'sortings']
+    ['贪心', '排序']
   ])
   const problems = [
     ...greedy,
-    ['801:B', 801, 'B', 'DP Easy', 1200, null, 'cf', ['dp']],
-    ['802:C', 802, 'C', 'DP Medium', 1400, null, 'cf', ['dp', 'graphs']],
+    ['801:B', 801, 'B', 'DP Easy', 1200, null, 'cf', ['动态规划']],
+    ['802:C', 802, 'C', 'DP Medium', 1400, null, 'cf', ['动态规划', '图论']],
     ['P1001', 0, 'P1001', 'A+B Problem', null, 1, 'luogu', ['模拟']],
     ['P3374', 0, 'P3374', '树状数组 1', null, 4, 'luogu', ['树状数组']],
     // v1.9 力扣（index = titleSlug，难度 1 简单 / 2 中等 / 3 困难）
     ['LC1', 0, 'two-sum', '两数之和', null, 1, 'leetcode', ['数组', '哈希表']],
     ['LC146', 0, 'lru-cache', 'LRU 缓存', null, 2, 'leetcode', ['设计', '哈希表', '链表']],
-    ['LC23', 0, 'merge-k-sorted-lists', '合并 K 个升序链表', null, 3, 'leetcode', ['链表', '分治', '堆（优先队列）']]
+    ['LC23', 0, 'merge-k-sorted-lists', '合并 K 个升序链表', null, 3, 'leetcode', ['链表', '分治', '堆']]
   ]
   for (const [id, contestId, index, name, rating, difficulty, source, tags] of problems) {
     insertProblem.run(

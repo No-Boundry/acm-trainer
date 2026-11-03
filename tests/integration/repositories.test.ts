@@ -86,7 +86,7 @@ describe('ProblemsRepo', () => {
     expect(res.items[0].id).toBe('1741:A')
     expect(res.items[0].practiced).toBe(true)
     expect(res.items[0].lastStatus).toBe('AC')
-    expect(res.items[0].tags).toContain('implementation')
+    expect(res.items[0].tags).toContain('模拟')
   })
 
   it('排序：rating 降序，无 rating 排最后', () => {
@@ -115,15 +115,11 @@ describe('ProblemsRepo', () => {
     expect(res.items.length).toBe(3)
   })
 
-  it('allTags 去重排序', () => {
+  it('allTags 去重排序（v1.18：写入即物化为中文 canonical）', () => {
     const repo = new ProblemsRepo(db)
     repo.upsertMany(sampleProblems, '2026-01-01 00:00:00')
-    expect(repo.allTags()).toEqual([
-      'constructive',
-      'dp',
-      'implementation',
-      'math'
-    ])
+    // 'dp'→动态规划、'implementation'→模拟、'math'→数学；'constructive' 不在映射表内保持原样
+    expect(repo.allTags()).toEqual(['constructive', '动态规划', '数学', '模拟'])
   })
 })
 
@@ -166,7 +162,7 @@ describe('RecordsRepo', () => {
     expect(s.distinctProblems).toBe(2)
     expect(s.practiceSeconds).toBe(180)
     expect(s.daily.length).toBeGreaterThanOrEqual(1)
-    expect(s.tagStats.find((t) => t.tag === 'implementation')?.count).toBe(2)
+    expect(s.tagStats.find((t) => t.tag === '模拟')?.count).toBe(2)
   })
 })
 
@@ -418,13 +414,13 @@ describe('标签统计按题源收窄（v1.16）', () => {
     records.create({ problemId: '1:A', status: 'AC' })
     records.create({ problemId: 'P1001', status: 'AC' })
 
-    expect(problems.tagUsage(['dp']).find((t) => t.tag === 'dp')?.totalProblems).toBe(3)
+    expect(problems.tagUsage(['dp']).find((t) => t.tag === '动态规划')?.totalProblems).toBe(3)
 
-    const dpCf = problems.tagUsage(['dp'], 'cf').find((t) => t.tag === 'dp')!
+    const dpCf = problems.tagUsage(['dp'], 'cf').find((t) => t.tag === '动态规划')!
     expect(dpCf.totalProblems).toBe(2)
     expect(dpCf.acProblems).toBe(1)
 
-    const dpLg = problems.tagUsage(['dp'], 'luogu').find((t) => t.tag === 'dp')!
+    const dpLg = problems.tagUsage(['dp'], 'luogu').find((t) => t.tag === '动态规划')!
     expect(dpLg.totalProblems).toBe(1)
     expect(dpLg.acProblems).toBe(1)
     expect(dpLg.progress).toBe(1)
@@ -450,7 +446,7 @@ describe('标签统计按题源收窄（v1.16）', () => {
       '2026-01-01 00:00:00'
     )
     const rows = problems.tagUsage(['dp'], 'cf')
-    expect(rows.map((r) => r.tag)).toEqual(['dp'])
+    expect(rows.map((r) => r.tag)).toEqual(['动态规划'])
     expect(rows[0].totalProblems).toBe(1)
   })
 })

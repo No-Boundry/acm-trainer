@@ -60,7 +60,7 @@ describe('数据导出/导入（FR-7.2/7.3）', () => {
     const prepo = new ProblemsRepo(db2)
     const p = prepo.getById('1741:A')
     expect(p?.name).toBe('T1')
-    expect(p?.tags).toContain('implementation')
+    expect(p?.tags).toContain('模拟')
     const recs = new RecordsRepo(db2).list({ mistakeOnly: true })
     expect(recs.total).toBe(1)
     expect(new NotesRepo(db2).list({ keyword: '题解' }).length).toBe(1)

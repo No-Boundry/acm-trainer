@@ -7,6 +7,7 @@ import type {
   ProblemUpsertInput,
   TagUsage
 } from '@shared/types'
+import { canonicalTags } from '@shared/tag-map'
 
 interface ProblemRowRaw {
   id: string
@@ -164,8 +165,9 @@ export function buildOrderSql(filter: Omit<ProblemFilter, 'page' | 'pageSize'>):
  * 所以调用方必须先用 buildWhere 拿到 params 再执行 SQL（list / candidates 都是这个顺序）。
  */
 function matchedTagsOrderPrefix(tags: string[] | undefined): string {
-  if (!tags || tags.length === 0) return ''
-  const ph = tags.map((_, i) => `@tag${i}`).join(', ')
+  const names = canonicalTags(tags ?? [])
+  if (names.length === 0) return ''
+  const ph = names.map((_, i) => `@tag${i}`).join(', ')
   return `(SELECT COUNT(DISTINCT t.id) FROM problem_tags pt
              JOIN tags t ON t.id = pt.tag_id
             WHERE pt.problem_id = p.id AND t.name IN (${ph})) DESC, `
@@ -226,7 +228,9 @@ export class ProblemsRepo {
         else added += 1
 
         clearTags.run(id)
-        for (const tagName of p.tags) {
+        // v1.18 FR-38：写库时就把别名物化为 canonical（如 greedy → 贪心），
+        // 一题同时带 'greedy' 与 '贪心' 时 canonicalTags 会去重，只留一行。
+        for (const tagName of canonicalTags(p.tags)) {
           insertTag.run(tagName)
           const row = getTag.get(tagName) as { id: number } | undefined
           if (row) addTag.run(id, row.id)
@@ -311,21 +315,28 @@ export class ProblemsRepo {
     // 知识点挂的标签越多越容易筛出 0 题（例如「并查集」同时挂 dsu + 并查集 + 连通性…），
     // 与技能树「点节点=勾选它关联的全部标签」的预期不符。命中数排序见 buildOrderSql。
     if (filter.tags && filter.tags.length > 0) {
-      const placeholders = filter.tags.map((_, i) => `@tag${i}`).join(', ')
-      conditions.push(
-        `p.id IN (
-           SELECT pt.problem_id FROM problem_tags pt
-           JOIN tags t ON t.id = pt.tag_id
-           WHERE t.name IN (${placeholders})
-         )`
-      )
-      filter.tags.forEach((t, i) => {
-        params[`tag${i}`] = t
-      })
+      // v1.18 FR-38：入参可能是英文别名（'greedy'）或中文 canonical（'贪心'），
+      // 统一 canonical 化后才能命中库里物化后的标签行。占位符编号与
+      // matchedTagsOrderPrefix 一致（同一个 canonicalTags 结果，顺序确定）。
+      const names = canonicalTags(filter.tags)
+      if (names.length > 0) {
+        const placeholders = names.map((_, i) => `@tag${i}`).join(', ')
+        conditions.push(
+          `p.id IN (
+             SELECT pt.problem_id FROM problem_tags pt
+             JOIN tags t ON t.id = pt.tag_id
+             WHERE t.name IN (${placeholders})
+           )`
+        )
+        names.forEach((t, i) => {
+          params[`tag${i}`] = t
+        })
+      }
     }
     // v1.8：OR 语义标签过滤（知识点筛选并集）——命中任一标签即可
     if (filter.tagsAny && filter.tagsAny.length > 0) {
-      const ph = filter.tagsAny.map((_, i) => `@anyTag${i}`).join(', ')
+      const names = canonicalTags(filter.tagsAny)
+      const ph = names.map((_, i) => `@anyTag${i}`).join(', ')
       conditions.push(
         `p.id IN (
            SELECT pt.problem_id FROM problem_tags pt
@@ -333,7 +344,7 @@ export class ProblemsRepo {
            WHERE t.name IN (${ph})
          )`
       )
-      filter.tagsAny.forEach((tag, i) => {
+      names.forEach((tag, i) => {
         params[`anyTag${i}`] = tag
       })
     }
@@ -388,9 +399,10 @@ export class ProblemsRepo {
 
   /** 按知识点标签并集取候选题 id（v1.10：题单/计划抽题用；难度区间由调用方用 list() 过滤） */
   idsForKnowledge(tagsAny: string[], source?: ProblemSource): string[] {
-    if (tagsAny.length === 0) return []
-    const ph = tagsAny.map(() => '?').join(', ')
-    const params: unknown[] = [...tagsAny]
+    const names = canonicalTags(tagsAny)
+    if (names.length === 0) return []
+    const ph = names.map(() => '?').join(', ')
+    const params: unknown[] = [...names]
     let sql = `SELECT p.id FROM problems p WHERE p.id IN (
                  SELECT pt.problem_id FROM problem_tags pt
                  JOIN tags t ON t.id = pt.tag_id WHERE t.name IN (${ph})
@@ -432,9 +444,10 @@ export class ProblemsRepo {
   tagUsage(tagFilter?: string[], source: 'all' | ProblemSource = 'all'): TagUsage[] {
     const conds: string[] = []
     const params: (string | number)[] = []
-    if (tagFilter && tagFilter.length > 0) {
-      conds.push(`t.name IN (${tagFilter.map(() => '?').join(', ')})`)
-      params.push(...tagFilter)
+    const names = canonicalTags(tagFilter ?? [])
+    if (names.length > 0) {
+      conds.push(`t.name IN (${names.map(() => '?').join(', ')})`)
+      params.push(...names)
     }
     if (source !== 'all') {
       conds.push('p.source = ?')

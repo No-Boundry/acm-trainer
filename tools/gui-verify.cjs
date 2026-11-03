@@ -59,12 +59,12 @@ function seedAfterBoot() {
 
   // 贪心：9 道不同题（掌握度按去重题目计 → proficient 基本掌握）
   const greedy = Array.from({ length: 9 }, (_, i) => [
-    `80${i}:A`, 80 + i, 'A', `Greedy ${i + 1}`, 800 + i * 50, null, 'cf', ['greedy', 'sortings']
+    `80${i}:A`, 80 + i, 'A', `Greedy ${i + 1}`, 800 + i * 50, null, 'cf', ['贪心', '排序']
   ])
   const problems = [
     ...greedy,
-    ['801:B', 801, 'B', 'DP Medium', 1400, null, 'cf', ['dp']],
-    ['802:C', 802, 'C', 'DP Hard', 1900, null, 'cf', ['dp', 'graphs']],
+    ['801:B', 801, 'B', 'DP Medium', 1400, null, 'cf', ['动态规划']],
+    ['802:C', 802, 'C', 'DP Hard', 1900, null, 'cf', ['动态规划', '图论']],
     ['P1001', 0, 'P1001', 'A+B Problem', null, 1, 'luogu', ['模拟']],
     ['P3374', 0, 'P3374', '树状数组 1', null, 4, 'luogu', ['树状数组']],
     // v1.9 力扣（index = titleSlug，难度 1 简单 / 2 中等 / 3 困难）
@@ -540,25 +540,41 @@ async function main() {
   const dsuDetailText = (await win.locator('.detail').innerText().catch(() => '')).replace(/\s+/g, ' ')
   const pickChips = await win.locator('.tag-pick').count()
   check('知识点详情面板提供可点选的关联标签', pickChips > 0, `标签数=${pickChips} 面板=${dsuDetailText.slice(0, 100)}`)
-  const dsuChip = win.locator('.tag-pick[data-tag="dsu"]')
+  // v1.18：标签映射把英文 dsu 物化成中文「并查集」，节点默认标签里不再有 dsu
+  const dsuChip = win.locator('.tag-pick[data-tag="并查集"]')
+  const dsuRawChip = await win.locator('.tag-pick[data-tag="dsu"]').count()
+  check(
+    '英文 dsu 标签已映射为中文「并查集」',
+    dsuRawChip === 0 && (await dsuChip.count()) > 0,
+    `并查集=${await dsuChip.count()} dsu=${dsuRawChip}`
+  )
   const dsuChipTitle = await dsuChip.first().getAttribute('title')
   check(
-    '标签显示题库题数与已练数（「并查集」的 dsu 标签在库中确有题目）',
+    '标签显示题库题数与已练数（「并查集」在库中确有题目）',
     /题库 \d+ 题/.test(dsuChipTitle || ''),
     String(dsuChipTitle)
   )
   const dsuChipText = ((await dsuChip.first().innerText()) || '').replace(/\s+/g, ' ')
   check('已 AC 的标签显示 ✓ 计数角标', /✓\d+/.test(dsuChipText) || !/✓/.test(dsuChipText), dsuChipText)
 
-  // 手动只选 dsu 一个标签（先全选默认，再取消「并查集」）
+  // 手动选取：全选默认 → 取消 → 再选回（映射后该节点只剩 1 个默认标签）
+  const defaultTagCount = await win.locator('.tag-pick').count()
   await win.locator('.detail button', { hasText: '全选默认标签' }).click()
   await win.waitForTimeout(400)
   const onAfterAll = await win.locator('.tag-pick.on').count()
-  check('「全选默认标签」选中该节点全部默认标签', onAfterAll >= 2, `选中=${onAfterAll}`)
+  check(
+    '「全选默认标签」选中该节点全部默认标签',
+    onAfterAll === defaultTagCount && onAfterAll >= 1,
+    `选中=${onAfterAll} 共=${defaultTagCount}`
+  )
   await win.locator('.detail .tag-pick[data-tag="并查集"]').first().click()
   await win.waitForTimeout(400)
   const onAfterUnpick = await win.locator('.tag-pick.on').count()
   check('可手动取消单个标签', onAfterUnpick === onAfterAll - 1, `剩余=${onAfterUnpick}`)
+  await win.locator('.detail .tag-pick[data-tag="并查集"]').first().click()
+  await win.waitForTimeout(400)
+  const onAfterRepick = await win.locator('.tag-pick.on').count()
+  check('可再次手动选回该标签', onAfterRepick === onAfterAll, `选中=${onAfterRepick}`)
   const pickBtn = win.locator('.detail-actions button', { hasText: '去题库练习' })
   const pickBtnText = ((await pickBtn.first().innerText()) || '').replace(/\s+/g, ' ')
   check('按钮显示手动选中的标签数', /选中 \d+ 个标签/.test(pickBtnText), pickBtnText)
@@ -567,8 +583,8 @@ async function main() {
   check('跳题库时携带手动选中的标签', /tags=/.test(win.url()), win.url())
   const selTagChips = await win.locator('.sel-line .chip').allInnerTexts()
   check(
-    '题库「已选」条只显示手动选取的标签',
-    selTagChips.length >= 1 && !selTagChips.join(',').includes('并查集'),
+    '题库「已选」条显示手动选取的标签',
+    selTagChips.length >= 1 && selTagChips.join(',').includes('并查集'),
     selTagChips.join(',')
   )
   await win.screenshot({ path: path.join(OUT, '11b-skill-tag-pick.png') })
@@ -605,9 +621,14 @@ async function main() {
     }
     return false
   }
-  const pickedDp = await pickTagByChip('dp')
-  const pickedGraphs = await pickTagByChip('graphs')
-  check('（v1.17）可同时勾选 dp 与 graphs 两个标签', pickedDp && pickedGraphs, `dp=${pickedDp} graphs=${pickedGraphs}`)
+  // v1.18：标签一律中文 canonical，「动态规划」同时命中 CF 的 802:C 与 801:B
+  const pickedDp = await pickTagByChip('动态规划')
+  const pickedGraphs = await pickTagByChip('图论')
+  check(
+    '（v1.17）可同时勾选「动态规划」与「图论」两个标签',
+    pickedDp && pickedGraphs,
+    `动态规划=${pickedDp} 图论=${pickedGraphs}`
+  )
   const selChipCount117 = await win.locator('.sel-line .chip').count()
   check('（v1.17）已选条同时显示两个标签', selChipCount117 === 2, `已选 ${selChipCount117} 个`)
   const matchHintText = ((await win.locator('.match-hint').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')

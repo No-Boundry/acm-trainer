@@ -1,15 +1,15 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.17.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-487%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-110%2F110-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.18.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-515%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-112%2F112-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.17.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.18.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,764 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
-- 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）
+- 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）；**标签已中英统一（v1.18）**：同一概念的英文标签（`greedy` / `dsu`）在入库时即归并为中文（`贪心` / `并查集`），搜 `greedy` 与搜 `贪心` 等价
 - 🎯 **首页推荐习题（v1.14；v1.16 起与题库页共用题源筛选）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）；**推荐区上方多一行题源切换（全部 / Codeforces / 洛谷 / 力扣），与题库页是同一个状态，在哪边切另一边都跟着变**
 - 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `greedy 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
 - 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
@@ -26,7 +26,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.17.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.18.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -93,6 +93,20 @@ backup/            旧版项目归档
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
 ## 版本说明
+
+### v1.18.0
+本版把**同一概念的中英文标签统一成一个标签**：CF 题的 `greedy` 与洛谷/力扣题的 `贪心` 现在入库时就归并为 `贪心`（`dsu` → `并查集`、`dp` → `动态规划`…）。**无新增数据表、无新增 IPC 通道、无新增设置项、无新字段**，覆盖安装即可（旧库首次启动自动迁移一次，幂等）。
+
+- **之前的现象**：`tags` 表以标签名为唯一键，英文标签与中文标签就是两行 → 同一概念被劈成两半。真实库实测 `dsu + 并查集` **交集 0 → 并集 907**、`greedy + 贪心` 交集 **0** → 并集 **5752**（交集为 0 = 两批题完全不重叠）。后果：① 按 `greedy` 筛与按 `贪心` 筛得到**不相交**的两批题；② 点技能树「并查集」节点（`tags: ['dsu', '并查集']`）时同一道题被算成「命中 2 个不同标签」，v1.17 的命中数排序与 `命中 N/M` 角标虚高；③ 首页「已练习标签」里同一概念两个 chip 各带一半题数。
+- **映射表**：新增 `src/shared/tag-map.ts` —— `TAG_ALIASES`（canonical → 别名数组，**53 canonical + 71 别名 = 124 名称**）、`canonicalTag(name)`（大小写与多余空白不敏感，未收录原样返回）、`canonicalTags(names)`（canonical 化 + 去重 + 保序 + 过滤空串）。**canonical 取中文**：UI 全中文，且中文标签覆盖面大得多（洛谷 452 + 力扣 171 vs CF 122）。
+- **写入即物化**：`upsertMany()` 的标签写入改为 `for (const tagName of canonicalTags(p.tags))`，**一处改动同时覆盖 CF / 洛谷 / 力扣三条写入路径**；一题同时带 `greedy` 与 `贪心` 时去重，库里只留 `贪心`。**不在查询期展开别名** —— 命中数排序是 `COUNT(DISTINCT t.id)`（按标签行计数）、`tagUsage` 是 `GROUP BY t.id`（按行分组），查询期展开会把同一概念算成 2 个命中，排序与角标一起错。
+- **查询与统计同步归一**：`buildWhere()`（`tags` / `tagsAny`）、`matchedTagsOrderPrefix()`、`idsForKnowledge()`、`tagUsage()` 全部先 `canonicalTags()` 再拼 `@tagN` / `@anyTagN`；`skill.ts` 的 `nodeTagSet` 与记录侧 tags 都过 `canonicalTags(...).map(lower)`，技能报告输出 `tags: canonicalTags(n.tags)`（渲染层不用改）；`tag-categories.ts` 的 `categorizeTag()` 先 canonicalize 再归类、归不到退回原名（保留英文条目兼容）。
+- **旧库迁移**：新增 `migrateProblemTagsToCanonical(db): number`，在 `migrate()` 末尾执行 —— 找别名行 → 事务内 `INSERT OR IGNORE` 建 canonical 行 → `INSERT OR IGNORE … SELECT` 搬题目关联 → 删旧关联 → 删别名行（先判 `target.id === row.id`）；**幂等**（第二次返回 0）。本机真实库标签 **574 → 516**（净 −58 = 合并 70 个别名行 − 新增 12 个此前不存在的 canonical 行）、`problem_tags` 关联 **113664 → 113577**（同题中英双写去重 87 条）、迁移后 0 个无题标签；题量与练习记录一条不少。
+- **不映射的标签**：来源/赛事类（`Special Judge`、`ICPC`、`USACO`、`洛谷原创`、各省省选、年份）与 `Ad-hoc`、`STL`、`Tarjan`、`K-D Tree` 原样保留 —— 它们不是同一概念的另一种拼写。
+
+测试 **515/515（46 文件）**、`verify:gui` **112/112**（新增 2 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；本版不新增截图。
+对应需求 **FR-38**（[docs/01-需求规格说明书.md](docs/01-需求规格说明书.md)）、设计 [docs/03-详细设计.md](docs/03-详细设计.md) §29。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §24。
 
 ### v1.17.0
 本版把题库页的**标签筛选从交集改为并集**，并按**命中标签数降序**排序（命中越多越靠前，命中数相同再按你选的排序方式）。**无新增数据表、无新增 IPC 通道、无新增设置项**，覆盖安装即可。

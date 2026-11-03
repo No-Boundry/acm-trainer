@@ -40,7 +40,7 @@ describe('全流程冒烟（A12）', () => {
       sortDir: 'desc'
     })
     expect(filtered.items.every((p) => (p.rating ?? 0) >= 1400 && (p.rating ?? 0) <= 1800)).toBe(true)
-    expect(filtered.items.every((p) => p.tags.includes('dp'))).toBe(true)
+    expect(filtered.items.every((p) => p.tags.includes('动态规划'))).toBe(true)
 
     // 3) 练习记录（含错题标记）
     const p1 = filtered.items[0].id
@@ -100,6 +100,7 @@ describe('全流程冒烟（A12）', () => {
     expect(a1741?.solvedCount).toBe(100000)
     const noRating = inputs.find((i) => i.contestId === 3000)
     expect(noRating?.rating).toBeNull()
+    // mapToUpsert 是纯映射，canonical 化发生在写库（upsertMany）时，此处仍是原始英文
     expect(noRating?.tags).toEqual(['math'])
 
     repos.problems.upsertMany(inputs, '2026-01-01 00:00:00')

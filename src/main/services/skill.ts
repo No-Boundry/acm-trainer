@@ -2,6 +2,7 @@ import type { Repos } from './index'
 import type { ResultStatus } from '@shared/types'
 import type { MasteryTier, NodePracticeStats, SkillNodeReport, SkillReport } from '@shared/types'
 import { SKILL_NODES } from '@shared/skill-tree'
+import { canonicalTags } from '@shared/tag-map'
 
 /**
  * 技能树统计与学习路径（v1.6 FR-9.2/9.3）。
@@ -101,14 +102,16 @@ export function buildSkillReport(repos: Repos): SkillReport {
   }
 
   // 节点 → 归属记录（题目标签命中节点任一关联标签；多标签题可计入多个节点）
+  // v1.18 FR-38：两侧都先 canonical 化（节点写的是 'dsu'/'贪心' 混排，
+  // 库里标签已物化为中文 canonical），否则英文节点标签会匹配不到中文题标签。
   const nodeRecords = new Map<string, { status: ResultStatus; createdAt: string; problemId: string }[]>()
   const nodeTagSet = new Map<string, Set<string>>()
   for (const n of SKILL_NODES) {
     nodeRecords.set(n.id, [])
-    nodeTagSet.set(n.id, new Set(n.tags.map((t) => t.toLowerCase())))
+    nodeTagSet.set(n.id, new Set(canonicalTags(n.tags).map((t) => t.toLowerCase())))
   }
   for (const r of records) {
-    const lowerTags = metaOf(r.problemId).tags.map((t) => t.toLowerCase())
+    const lowerTags = canonicalTags(metaOf(r.problemId).tags).map((t) => t.toLowerCase())
     if (lowerTags.length === 0) continue
     for (const n of SKILL_NODES) {
       if (lowerTags.some((t) => nodeTagSet.get(n.id)!.has(t))) {
@@ -131,7 +134,7 @@ export function buildSkillReport(repos: Repos): SkillReport {
       id: n.id,
       name: n.name,
       layer: n.layer,
-      tags: n.tags,
+      tags: canonicalTags(n.tags),
       dependsOn: n.dependsOn,
       intro: n.intro, // v1.7 FR-11：内置简介随报告下发
       stats: statsById.get(n.id)!,

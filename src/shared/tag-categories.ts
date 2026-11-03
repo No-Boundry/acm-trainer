@@ -6,6 +6,8 @@
  * 注意：子串关键词必须避开跨类误伤词（如 '二分' 会命中 '二分图'、'树' 会命中 '树状数组'）。
  */
 
+import { canonicalTag } from './tag-map'
+
 export interface TagCategoryDef {
   name: string
   /** 精确匹配（官方标签名，大小写不敏感） */
@@ -332,6 +334,20 @@ for (const c of TAG_CATEGORIES) {
 
 /** 将标签名归入大类（未命中 → '其他'） */
 export function categorizeTag(tag: string): string {
+  // v1.18 FR-38：先按 canonical 归类（'greedy' → '贪心'），
+  // canonical 未命中分类表时再退回按原写法归类，保证旧英文标签仍能进对的大类。
+  const canonical = canonicalTag(tag)
+  const byCanonical = classify(canonical)
+  if (byCanonical !== '其他') return byCanonical
+  // canonical 与原文都没命中时，退回按原写法再试一次（兼容只登记了英文的历史标签）
+  if (canonical !== tag) {
+    const byOriginal = classify(tag)
+    if (byOriginal !== '其他') return byOriginal
+  }
+  return '其他'
+}
+
+function classify(tag: string): string {
   const lower = tag.trim().toLowerCase()
   // 1) 精确匹配
   const hit = EXACT_INDEX.find((e) => e.lower === lower)

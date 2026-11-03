@@ -119,7 +119,7 @@ describe('syncLuoguProblemset 编排（分页/进度/写入/幂等）', () => {
     // 抽查数据（tag 中文名、难度、id）
     const p = repo.getById('P1001')
     expect(p?.source).toBe('luogu')
-    expect(p?.tags).toContain('动态规划 DP')
+    expect(p?.tags).toContain('动态规划')
     expect(p?.difficulty).not.toBeNull()
 
     // 幂等：重复同步 → updated

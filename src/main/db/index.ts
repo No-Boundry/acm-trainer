@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3'
 import { SCHEMA_SQL } from './schema'
 import { AppError } from './errors'
+import { canonicalTag } from '@shared/tag-map'
 
 let db: Database.Database | null = null
 
@@ -28,6 +29,51 @@ function migrate(instance: Database.Database): void {
     instance.exec('ALTER TABLE practice_records ADD COLUMN import_source TEXT')
   }
   rebuildProblemsIfSourceCheckStale(instance)
+  migrateProblemTagsToCanonical(instance)
+}
+
+/**
+ * v1.18 FR-38：把标签别名物化为 canonical（中文）写法。
+ *
+ * 幂等：合并后别名标签行被删除，重复执行不会有任何改动。
+ * 事务内按 canonical 归并：确保 canonical 标签行存在 → 把别名的题目关联
+ * 改挂到 canonical（`INSERT OR IGNORE` 天然去重，一题同时带 'greedy' 与
+ * '贪心' 时不会重复插入）→ 删别名的关联与标签行。
+ *
+ * 不在查询期展开别名的原因：`COUNT(DISTINCT t.id)`（命中标签数排序）与
+ * 标签使用统计会把同一概念的两个拼写算成两份，物化后这些口径天然正确。
+ *
+ * @returns 被合并掉的别名标签行数（0 表示本来就是干净的）
+ */
+export function migrateProblemTagsToCanonical(instance: Database.Database): number {
+  const rows = instance.prepare('SELECT id, name FROM tags').all() as {
+    id: number
+    name: string
+  }[]
+  const stale = rows.filter((r) => canonicalTag(r.name) !== r.name)
+  if (stale.length === 0) return 0
+
+  const insertCanonical = instance.prepare('INSERT OR IGNORE INTO tags (name) VALUES (?)')
+  const tagIdOf = instance.prepare('SELECT id FROM tags WHERE name = ?')
+  const moveLinks = instance.prepare(
+    `INSERT OR IGNORE INTO problem_tags (problem_id, tag_id)
+     SELECT problem_id, ? FROM problem_tags WHERE tag_id = ?`
+  )
+  const dropLinks = instance.prepare('DELETE FROM problem_tags WHERE tag_id = ?')
+  const dropTag = instance.prepare('DELETE FROM tags WHERE id = ?')
+
+  instance.transaction(() => {
+    for (const row of stale) {
+      const canonical = canonicalTag(row.name)
+      insertCanonical.run(canonical)
+      const target = tagIdOf.get(canonical) as { id: number } | undefined
+      if (!target || target.id === row.id) continue
+      moveLinks.run(target.id, row.id)
+      dropLinks.run(row.id)
+      dropTag.run(row.id)
+    }
+  })()
+  return stale.length
 }
 
 /**

@@ -343,6 +343,8 @@ export function resolveFilterTags(
   knowledgeIds: string[] = [],
   extraTags: string[] = []
 ): string[] {
+  // filterTags 的生产者（技能树节点标签 / 题库标签列表）都已是 canonical 写法，
+  // 这里原样保留即可；canonical 化在写库与查询处完成（v1.18 FR-38）。
   const set = new Set<string>(extraTags)
   for (const t of knowledgeFilterTags(nodes, knowledgeIds)) set.add(t)
   return [...set]
