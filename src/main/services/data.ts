@@ -34,7 +34,9 @@ const TABLES = [
   'problem_list_items',
   'training_plans',
   'plan_tasks',
-  'plan_busy_days'
+  'plan_busy_days',
+  // v1.19：刷题记录（打开过的题）
+  'problem_views'
 ] as const
 
 export type ExportTable = (typeof TABLES)[number]

@@ -105,6 +105,14 @@ function seedData(userDataDir) {
   insertRecord.run('LC1', 'AC', now)
   insertRecord.run('LC146', 'AC', now)
   insertRecord.run('LC23', 'WA', now)
+
+  // v1.19 FR-40：刷题记录（打开过的题）——3 道题、共 4 次打开，
+  // `802:C` 打开两次用于验证「打开 N 次」角标；按 opened_at 倒序应显示 P3374 → 802:C → 801:B
+  const insertView = db.prepare('INSERT INTO problem_views (problem_id, opened_at) VALUES (?, ?)')
+  insertView.run('801:B', '2026-09-10 09:00:00')
+  insertView.run('802:C', '2026-09-11 10:00:00')
+  insertView.run('802:C', '2026-09-12 11:00:00')
+  insertView.run('P3374', '2026-09-12 19:30:00')
   db.close()
 }
 

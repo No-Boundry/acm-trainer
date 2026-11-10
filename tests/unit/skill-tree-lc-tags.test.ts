@@ -41,11 +41,12 @@ describe('知识点节点标签（含力扣中文标签接入）', () => {
       ['stack_queue', '栈'],
       ['search', '深度优先搜索'],
       ['search', '广度优先搜索'],
-      ['search', '回溯'],
+      // v1.19 拆分：回溯归入「暴力与剪枝」，强连通/割点桥归入「连通性与割点桥」
+      ['brute_force', '回溯'],
       ['graph', '拓扑排序'],
-      ['graph', '强连通分量'],
+      ['graph_conn', '强连通分量'],
       ['dp', '动态规划'],
-      ['dp', '最长上升子序列'],
+      ['dp_seq', '最长上升子序列'],
       ['dsu', '并查集'],
       ['fenwick', '树状数组'],
       ['heap', '堆（优先队列）'],
@@ -61,7 +62,7 @@ describe('知识点节点标签（含力扣中文标签接入）', () => {
       ['dp_tree', '二叉树'],
       ['dp_state', '位掩码'],
       ['strings', '字符串匹配'],
-      ['strings', '字典树'],
+      ['ac_auto', '字典树'],
       ['strings_suf', '后缀数组'],
       ['lca', '最近公共祖先'],
       ['geo', '凸包'],
@@ -142,5 +143,46 @@ describe('知识点节点标签（含力扣中文标签接入）', () => {
       expect(node!.intro.length, `${id} 简介过短`).toBeGreaterThanOrEqual(25)
     }
     expect(SKILL_NODES.length).toBeGreaterThanOrEqual(54)
+  })
+})
+
+describe('知识点粒度（v1.19 FR-39：单节点标签过多则拆分）', () => {
+  it('节点总数为 70（54 + 拆分出的 16 个专题节点）', () => {
+    expect(SKILL_NODES.length).toBe(70)
+  })
+
+  it('每个节点的关联标签不超过 6 个（综合节点除外）', () => {
+    for (const n of SKILL_NODES) {
+      if (n.id === 'final_sprint') continue
+      expect(n.tags.length, `${n.id} 关联标签过多（${n.tags.length}）`).toBeLessThanOrEqual(6)
+    }
+  })
+
+  it('拆分出的 16 个专题节点都存在、有标签且有简介', () => {
+    const splitIds = [
+      'prime',
+      'bezout',
+      'sort_adv',
+      'dp_seq',
+      'graph_conn',
+      'euler',
+      'graph_extra',
+      'heuristic_search',
+      'shortest_adv',
+      'sparse_block',
+      'balanced_tree',
+      'lichao_kd',
+      'ac_auto',
+      'flow_impl',
+      'minimax',
+      'geo_adv'
+    ]
+    expect(splitIds.length).toBe(16)
+    for (const id of splitIds) {
+      const node = SKILL_NODES.find((n) => n.id === id)
+      expect(node, `缺少拆分节点 ${id}`).toBeTruthy()
+      expect(node!.tags.length, `${id} 无关联标签`).toBeGreaterThan(0)
+      expect(node!.intro.length, `${id} 简介过短`).toBeGreaterThanOrEqual(25)
+    }
   })
 })

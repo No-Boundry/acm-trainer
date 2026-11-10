@@ -1,17 +1,18 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.18.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-515%20passed-brightgreen)](docs/04-测试规范.md)
-[![gui](https://img.shields.io/badge/verify%3Agui-112%2F112-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.19.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-533%20passed-brightgreen)](docs/04-测试规范.md)
+[![gui](https://img.shields.io/badge/verify%3Agui-119%2F119-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.18.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.19.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（约 1.1 万题）、洛谷 P 题（约 1.6 万题）与**力扣算法题（3930 道）三数据源**（合计 31,764 题），按难度/标签/状态/关键字筛选，**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
-- 🧠 **知识点筛选**：**54 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）；**标签已中英统一（v1.18）**：同一概念的英文标签（`greedy` / `dsu`）在入库时即归并为中文（`贪心` / `并查集`），搜 `greedy` 与搜 `贪心` 等价
+- 🧠 **知识点筛选**：**70 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）；**标签已中英统一（v1.18）**：同一概念的英文标签（`greedy` / `dsu`）在入库时即归并为中文（`贪心` / `并查集`），搜 `greedy` 与搜 `贪心` 等价
 - 🎯 **首页推荐习题（v1.14；v1.16 起与题库页共用题源筛选）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）；**推荐区上方多一行题源切换（全部 / Codeforces / 洛谷 / 力扣），与题库页是同一个状态，在哪边切另一边都跟着变**
-- 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `greedy 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
+- 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `贪心 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
+- 🕘 **刷题记录（v1.19）**：首页按**打开题面的时间倒序**列出你打开过的题（题号/题名/难度/时间），同一道题只占一行、多次打开显示「打开 N 次」；点条目重新打开题面，「清空记录」不影响题库与练习记录；已纳入备份 / 恢复
 - 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
 - 📋 **题单**：**三种建法**（题库勾选 / 粘贴题号识别 / 按知识点+难度生成），题单内记录完成状态、备注与复习进度
 - 🔁 **题单内间隔复习**：**1 / 3 / 7 / 14 / 30 / 60 天**阶梯，勾选完成自动进入第 1 档；「今日复习」跨题单汇总（逾期也算），反馈 **困难退一档 / 一般进一档 / 轻松跳一档**
@@ -26,7 +27,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.18.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.19.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题 → 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -36,7 +37,7 @@
 8. 到「⚙️ 设置 → 首页推荐习题」调两栏的**排序方式**与**条数（1–30）**，回首页立即生效；
 9. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
 
-📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`、v1.17 新增的标签并集截图 `04b-tags-union.png`）
+📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`、v1.17 新增的标签并集截图 `04b-tags-union.png`、v1.19.0 新增的首页刷题记录截图 `15c-dashboard-views.png` 与 `12-skill-track.png`，目录内合计 31 张）
 
 ## 常用命令
 
@@ -51,7 +52,7 @@
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
-| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 5 张验收/补充截图——v1.14 二张、v1.16 `15b-source-linked.png`、v1.17 `04b-tags-union.png` 等，合计 29 张） |
+| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 7 张验收/补充截图——v1.14 二张、v1.16 `15b-source-linked.png`、v1.17 `04b-tags-union.png`、v1.19 `15c-dashboard-views.png` 与 `12-skill-track.png` 等，合计 31 张） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
 ## 文档
@@ -76,7 +77,7 @@
 src/
 ├── main/          主进程：db（schema + repositories + 迁移）、services（cf/luogu/leetcode/rating/difficulty-stats/skill/problem-list/training-plan/review/**recommend**…）、ipc（各域 handler；v1.14 新增 `recommend:get`、`stats:tagUsage`）
 ├── preload/       contextBridge 白名单桥接（window.api）
-├── shared/        跨进程类型、IPC 通道常量、技能树图谱（54 节点 + 5 个国内比赛赛道）、标签分类
+├── shared/        跨进程类型、IPC 通道常量、技能树图谱（70 节点 + 5 个国内比赛赛道）、标签分类
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取）
 tests/             单元 / 集成 / 渲染组件测试（vitest，44 个文件 / 487 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / **gui-perf**）与手册配图脚本（playwright-core）
@@ -93,6 +94,19 @@ backup/            旧版项目归档
 - GUI 自动化脚本启动时会剔除环境变量 `ELECTRON_RUN_AS_NODE`（该变量会让 electron.exe 退化为纯 Node，无法创建窗口）。
 
 ## 版本说明
+
+### v1.19.0
+本版做两件事：**把学习路径从 54 个知识点拆成 70 个**（单个知识点最多 6 个标签，不再出现「图论入门」一次勾 18 个标签），**首页新增「刷题记录」**（按打开题面的时间倒序记录你打开过的题）。新增 1 张表 `problem_views`、2 个 IPC 通道、**0 个设置项**；技能树是代码内静态数据，**无数据迁移**，覆盖安装即可（`problem_views` 由 `CREATE TABLE IF NOT EXISTS` 自动创建）。
+
+- **为什么拆**：改前 54 个节点共引用 231 个标签、平均 4.28 个，但**有 12 个节点挂着 7 个以上标签**（`graph` 图论入门 **18** 个、`segtree` 线段树 **12** 个、`math_basic` 基础数学 **11** 个、`sort` 排序 **11** 个…）。后果：① 点一个节点等于一次勾十几个标签，题库「已选」条被塞满，筛出的题量与该节点统计的题量对不上；②「学到哪儿了」说不清 —— 拓扑排序会了、割点桥没碰，进度只能算一整个 18 标签节点的掌握度。
+- **怎么拆**：**只拆不改 id**（题单 `knowledge_ids`、训练计划、5 个赛道的 `focus`/`required` 都按字符串 id 存，改 id 会让用户已有数据静默失效）。新增 16 个节点：`bezout` 同余与裴蜀、`prime` 素数筛法、`sort_adv` 线性与特殊排序、`heuristic_search` 启发式搜索、`graph_conn` 连通性与割点桥、`euler` 欧拉路、`graph_extra` 平面图与哈密顿、`sparse_block` ST 表与分块、`balanced_tree` 平衡树、`lichao_kd` 李超树与 K-D 树、`ac_auto` AC 自动机、`flow_impl` 最大流实现、`minimax` 极大极小与零和博弈、`shortest_adv` 特殊最短路、`geo_adv` 计算几何进阶、`dp_seq` 序列 DP；另把 `回溯` 移到「暴力与剪枝」、`抽屉原理` 移到「组合数学」。每个新节点都带中文简介（≥25 字）、`dependsOn` 前置与 ≤6 个标签。
+- **改后实测**：**70 节点 / 标签引用 229**（原 231，`0-1 BFS`、`双向搜索` 不再跨节点重复登记）/ **单节点最多 6 个** / 分布 `{"0":1,"1":7,"2":20,"3":10,"4":15,"5":10,"6":7}` —— 挂 7 个以上标签的节点从 12 个变成 **0 个**。
+- **刷题记录**：新增表 `problem_views(id, problem_id REFERENCES problems(id) ON DELETE CASCADE, opened_at DEFAULT datetime('now','localtime'))`；`statement:open` 在**打开浏览器之后**调 `repos.views.record(problemId)`（写库放在副作用之后，写库失败也不影响开题面；脏 id 先 `SELECT 1 FROM problems` 校验后静默忽略）。首页按题目聚合展示：`GROUP BY problem_id` + `MAX/MIN(opened_at)` + `COUNT(*)`，`ORDER BY lastOpenedAt DESC`，每行显示题号/题名/难度/时间，多次打开显示 `打开 N 次` 角标，点条目可重新打开，`清空记录` 只清这张表（题库与练习记录不受影响）。`limit` 默认 12（非数字或 ≤0 回退 12、上限 100）。
+- **备份**：`src/main/services/data.ts` 的 `TABLES` 已加 `problem_views`，导出/恢复包含刷题记录。
+
+测试 **533/533（48 文件）**、`verify:gui` **119/119**（新增 7 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增截图 `docs/images/15c-dashboard-views.png`（首页刷题记录）与 `12-skill-track.png`，配图合计 31 张。
+对应需求 **FR-39**（知识点粒度）+ **FR-40**（首页刷题记录）（[docs/01-需求规格说明书.md](docs/01-需求规格说明书.md)）、设计 [docs/03-详细设计.md](docs/03-详细设计.md) §30。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §25。使用说明见 [docs/09-使用手册.md](docs/09-使用手册.md) §25 / §26。
 
 ### v1.18.0
 本版把**同一概念的中英文标签统一成一个标签**：CF 题的 `greedy` 与洛谷/力扣题的 `贪心` 现在入库时就归并为 `贪心`（`dsu` → `并查集`、`dp` → `动态规划`…）。**无新增数据表、无新增 IPC 通道、无新增设置项、无新字段**，覆盖安装即可（旧库首次启动自动迁移一次，幂等）。

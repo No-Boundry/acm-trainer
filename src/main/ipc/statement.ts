@@ -16,6 +16,8 @@ export function registerStatementIpc(repos: Repos): void {
       const p = repos.problems.getById(problemId)
       if (!p) throw new AppError('NOT_FOUND', '题目不存在')
       const r = openInEdge(p.cfUrl)
+      // v1.19 FR-40：记录「打开过的题」（首页刷题记录数据源）
+      repos.views.record(problemId)
       return { ok: true, via: r.via }
     }
   )

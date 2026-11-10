@@ -728,3 +728,18 @@ export interface RecommendResult {
   /** 知识点筛选命中的标签 */
   filterTags: string[]
 }
+
+/** 刷题记录（v1.19 FR-40）：按题目聚合的一条「打开过」记录 */
+export interface ProblemView {
+  problemId: string
+  name: string
+  source: ProblemSource
+  /** CF rating / 洛谷难度 / 力扣难度（无则 null） */
+  rating: number | null
+  /** 最近一次打开时间（YYYY-MM-DD HH:mm:ss，本地时区） */
+  lastOpenedAt: string
+  /** 首次打开时间 */
+  firstOpenedAt: string
+  /** 累计打开次数 */
+  openCount: number
+}

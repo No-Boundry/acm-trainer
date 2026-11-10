@@ -110,7 +110,11 @@ export const IpcChannels = {
 
   // 首页推荐习题 + 已练习标签（v1.14 FR-31~FR-33）
   RecommendGet: 'recommend:get',
-  StatsTagUsage: 'stats:tagUsage'
+  StatsTagUsage: 'stats:tagUsage',
+
+  // 刷题记录（v1.19 FR-40）：打开过的题，按时间倒序
+  ViewsRecent: 'views:recent',
+  ViewsClear: 'views:clear'
 } as const
 
 export type IpcChannel = (typeof IpcChannels)[keyof typeof IpcChannels]

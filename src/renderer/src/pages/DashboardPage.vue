@@ -10,6 +10,7 @@ import type {
   PracticeRecord,
   PracticeState,
   ProblemSource,
+  ProblemView,
   RatingBreakdown,
   RatingSnapshot,
   RecommendResult,
@@ -124,6 +125,44 @@ const stateClass: Record<PracticeState, string> = {
   undone: 'st-undone'
 }
 
+/** 刷题记录（v1.19 FR-40）：打开过的题，按最近打开时间倒序 */
+const views = ref<ProblemView[]>([])
+
+async function loadViews(): Promise<void> {
+  try {
+    views.value = await invoke<ProblemView[]>(IpcChannels.ViewsRecent, { limit: 12 })
+  } catch {
+    views.value = []
+  }
+}
+
+async function clearViews(): Promise<void> {
+  try {
+    await invoke(IpcChannels.ViewsClear, undefined)
+  } catch {
+    // 忽略：清空失败时保持原列表
+  }
+  await loadViews()
+}
+
+/** 点记录行 = 重新打开题面（会再记一次打开，符合「刷题记录」语义） */
+async function reopen(problemId: string): Promise<void> {
+  try {
+    await invoke(IpcChannels.StatementOpen, { problemId })
+  } catch {
+    // 题面打不开时不影响列表
+  }
+  await loadViews()
+}
+
+/** 「2026-10-31 12:04:33」→「10-31 12:04」；跨年时保留年份 */
+function viewTime(at: string): string {
+  if (!at) return ''
+  const thisYear = new Date().getFullYear().toString()
+  return at.startsWith(thisYear) ? at.slice(5, 16) : at.slice(0, 16)
+}
+
+
 onMounted(async () => {
   if (!user.loaded) void user.load()
   try {
@@ -147,6 +186,7 @@ onMounted(async () => {
     setTimeout(() => {
       void loadRecommend()
       void loadTags()
+      void loadViews()
     }, 0)
   })
 })
@@ -313,6 +353,34 @@ const statusColor: Record<string, string> = {
             </p>
           </section>
         </div>
+      </div>
+
+      <!-- 刷题记录（v1.19 FR-40：按打开时间倒序记录打开过的题） -->
+      <div class="panel" data-panel="views">
+        <div class="panel-head">
+          <h4>刷题记录</h4>
+          <span class="dim small">按打开时间倒序 · 共 {{ views.length }} 道</span>
+          <span class="grow" />
+          <button class="btn ghost mini" :disabled="!views.length" data-views-clear @click="clearViews">
+            清空记录
+          </button>
+        </div>
+        <ul v-if="views.length" class="rec-list views-list">
+          <li
+            v-for="v in views"
+            :key="v.problemId"
+            class="view-item"
+            :data-view-id="v.problemId"
+            @click="reopen(v.problemId)"
+          >
+            <span class="mono">{{ v.problemId }}</span>
+            <span class="pname">{{ v.name }}</span>
+            <span v-if="v.rating" class="rating">{{ v.rating }}</span>
+            <span class="dim small">{{ viewTime(v.lastOpenedAt) }}</span>
+            <span v-if="v.openCount > 1" class="mini-tag open-count">打开 {{ v.openCount }} 次</span>
+          </li>
+        </ul>
+        <p v-else class="dim small">还没有打开过的题：在题库里点「题面」就会记在这里。</p>
       </div>
 
       <!-- 最近记录 -->
@@ -619,6 +687,24 @@ const statusColor: Record<string, string> = {
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 8px;
+}
+/* 刷题记录（v1.19 FR-40） */
+.views-list li.view-item {
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.views-list li.view-item:hover {
+  background: var(--bg);
+}
+.view-item .pname {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.open-count {
+  color: var(--accent, #89b4fa);
 }
 .dim {
   color: var(--text-faint);

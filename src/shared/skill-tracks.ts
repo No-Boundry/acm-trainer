@@ -3,7 +3,7 @@ import { MASTERY_TIER_ORDER, type MasteryTier } from './types'
 /**
  * 国内比赛的技能树「赛道」预设（v1.10 FR-26）。
  *
- * 同一条技能树图谱（54 节点）按不同比赛的考纲做三件事：
+ * 同一条技能树图谱（70 节点）按不同比赛的考纲做三件事：
  * - focus：该比赛的重点节点（界面高亮 + 题单生成的默认知识点来源）；
  * - required：必须达标的节点（达标线 = proficient「基本掌握」及以上）；
  * - ratingRange / meta：推荐难度区间与赛制说明（题单/计划生成的默认值）。
@@ -36,11 +36,13 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
     ratingRange: [800, 1700],
     focus: [
       'math_basic',
+      'prime',
       'impl',
       'sim_impl',
       'brute_force',
       'stl_usage',
       'sort',
+      'sort_adv',
       'enum',
       'prefix',
       'binary',
@@ -81,7 +83,10 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'binary',
       'hash_str',
       'monotone',
-      'segtree'
+      'segtree',
+      // v1.19 拆分出的专题节点
+      'prime',
+      'dp_seq'
     ],
     required: ['impl', 'sim_impl', 'strings', 'sort', 'stl_usage', 'stack_queue', 'search', 'graph', 'dp']
   },
@@ -129,7 +134,24 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'flow',
       'match',
       'game_theory',
-      'interactive'
+      'minimax',
+      'interactive',
+      // v1.19 拆分出的专题节点（区域赛同样覆盖）
+      'prime',
+      'bezout',
+      'sort_adv',
+      'dp_seq',
+      'graph_conn',
+      'euler',
+      'heuristic_search',
+      'graph_extra',
+      'shortest_adv',
+      'sparse_block',
+      'balanced_tree',
+      'lichao_kd',
+      'ac_auto',
+      'flow_impl',
+      'geo_adv'
     ],
     required: [
       'math_basic',
@@ -147,7 +169,10 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'strings',
       'number',
       'combo',
-      'geo'
+      'geo',
+      'prime',
+      'dp_seq',
+      'graph_conn'
     ]
   },
   {
@@ -187,7 +212,16 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'mod_inv',
       'combo',
       'prob_stats',
-      'matrix_linear'
+      'matrix_linear',
+      // v1.19 拆分出的专题节点（信奥常考）
+      'prime',
+      'bezout',
+      'dp_seq',
+      'graph_conn',
+      'euler',
+      'sparse_block',
+      'balanced_tree',
+      'shortest_adv'
     ],
     required: [
       'math_basic',
@@ -204,7 +238,10 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'dsu',
       'fenwick',
       'strings',
-      'number'
+      'number',
+      'prime',
+      'dp_seq',
+      'graph_conn'
     ]
   },
   {
@@ -232,7 +269,10 @@ export const SKILL_TRACKS: readonly SkillTrack[] = [
       'binary',
       'prefix',
       'graph',
-      'matrix_linear'
+      'matrix_linear',
+      // v1.19 拆分出的专题节点（牛客思维题偏多）
+      'minimax',
+      'sort_adv'
     ],
     required: ['impl', 'construct', 'greedy', 'math_basic', 'number', 'dp', 'search', 'bitops']
   }

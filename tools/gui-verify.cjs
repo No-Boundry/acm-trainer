@@ -109,6 +109,14 @@ function seedAfterBoot() {
   insertLcRecord.run('LC1', 'AC', now)
   insertLcRecord.run('LC146', 'AC', now)
   insertLcRecord.run('LC23', 'WA', now)
+
+  // v1.19 FR-40：刷题记录种子 —— 3 道题共 4 次打开，按 opened_at 倒序应为 P3374 → 802:C → 801:B，
+  // 其中 802:C 打开两次用于验证「打开 N 次」角标。
+  const insertView = db.prepare('INSERT INTO problem_views (problem_id, opened_at) VALUES (?, ?)')
+  insertView.run('801:B', '2026-09-10 09:00:00')
+  insertView.run('802:C', '2026-09-11 10:00:00')
+  insertView.run('802:C', '2026-09-12 11:00:00')
+  insertView.run('P3374', '2026-09-12 19:30:00')
   db.close()
 }
 
@@ -160,7 +168,7 @@ async function main() {
   await knTab.click()
   await win.waitForTimeout(500)
   const chipCount = await win.locator('.kn-chip').count()
-  check('知识点标签数 = 54（v1.10 新增国内比赛节点）', chipCount === 54, `实际 ${chipCount}`)
+  check('知识点标签数 = 70（v1.19 拆分过大的节点）', chipCount === 70, `实际 ${chipCount}`)
   // v1.12：在线导入已迁移到设置页「题库账号绑定」，题库页只保留粘贴导入与入口
   const importPanelText = (await win.locator('.import-panel').innerText()).replace(/\s+/g, ' ')
   check(
@@ -492,7 +500,7 @@ async function main() {
     trackSegs.join(',')
   )
   const nodeCards = await win.locator('.node-card').count()
-  check('技能树节点数 = 54（含 v1.10 新增节点）', nodeCards === 54, `实际 ${nodeCards}`)
+  check('技能树节点数 = 70（v1.19 拆分后）', nodeCards === 70, `实际 ${nodeCards}`)
   await win.locator('.track-row .seg', { hasText: '蓝桥杯' }).first().click()
   await win.waitForTimeout(900)
   const trackDetail = (await win.locator('.track-detail').innerText()).replace(/\s+/g, ' ')
@@ -513,7 +521,7 @@ async function main() {
     const visibleCards = await win.locator('.node-card:visible').count()
     check(
       '「只显示赛道节点」时连线随卡片一起减少（无残留悬空线）',
-      edgesAfter < edgesBefore && edgesAfter > 0 && visibleCards < 54,
+      edgesAfter < edgesBefore && edgesAfter > 0 && visibleCards < 70,
       `连线 ${edgesBefore} → ${edgesAfter}，可见卡片 ${visibleCards}`
     )
     await win.screenshot({ path: path.join(OUT, '12b-skill-track-only.png') })
@@ -764,6 +772,37 @@ async function main() {
       await win.waitForTimeout(1200)
     }
   }
+
+  // 4g) v1.19 FR-40：首页「刷题记录」（按打开时间倒序记录打开过的题）
+  await win.locator('.nav-item', { hasText: '首页' }).click()
+  await win.waitForTimeout(2200)
+  const viewsPanel = win.locator('[data-panel="views"]')
+  check('首页出现「刷题记录」面板', (await viewsPanel.count()) > 0)
+  const viewItems = await win.locator('[data-panel="views"] .view-item').count()
+  check('刷题记录列出打开过的题（种子 3 道）', viewItems === 3, `实际 ${viewItems}`)
+  const viewIds = await win
+    .locator('[data-panel="views"] .view-item')
+    .evaluateAll((els) => els.map((el) => el.getAttribute('data-view-id')))
+  check('刷题记录按打开时间倒序（最新在最上）', viewIds.join(',') === 'P3374,802:C,801:B', viewIds.join(','))
+  const openCountText = ((await win.locator('[data-panel="views"] .open-count').allInnerTexts()).join('|')) || ''
+  check('同一题打开多次显示「打开 N 次」', /打开 2 次/.test(openCountText), openCountText || '（无角标）')
+  const viewsIpc = await win.evaluate(async () => {
+    const r = await window.api.invoke('views:recent', { limit: 12 })
+    return r && r.ok ? r.data.length : -1
+  })
+  check('views:recent 通道返回聚合后的记录', viewsIpc === 3, `返回 ${viewsIpc} 条`)
+  await win.screenshot({ path: path.join(OUT, '15c-dashboard-views.png') })
+
+  await win.locator('[data-views-clear]').click()
+  await win.waitForTimeout(1400)
+  const afterClear = await win.locator('[data-panel="views"] .view-item').count()
+  const viewsText = ((await viewsPanel.innerText()) || '').replace(/\s+/g, ' ')
+  check('清空记录后回到空态', afterClear === 0 && /还没有打开过的题/.test(viewsText), `剩余 ${afterClear} 条`)
+  const totalAfter = await win.evaluate(async () => {
+    const r = await window.api.invoke('problems:list', { page: 1, pageSize: 1, source: 'all' })
+    return r && r.ok ? r.data.total : -1
+  })
+  check('清空刷题记录不影响题库数据', totalAfter === 16, `题库 ${totalAfter} 题`)
 
   // 4h) 题单 / 今日复习 / 训练计划（v1.10 FR-27~FR-29）
   await win.locator('.nav-item', { hasText: '题单/计划' }).click()

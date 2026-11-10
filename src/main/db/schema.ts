@@ -179,6 +179,15 @@ CREATE TABLE IF NOT EXISTS plan_busy_days (
   PRIMARY KEY (plan_id, date)
 );
 
+-- 刷题记录（v1.19 FR-40）：每次打开题面记一条，首页按时间倒序展示
+CREATE TABLE IF NOT EXISTS problem_views (
+  id         INTEGER PRIMARY KEY AUTOINCREMENT,
+  problem_id TEXT NOT NULL REFERENCES problems(id) ON DELETE CASCADE,
+  opened_at  TEXT NOT NULL DEFAULT (datetime('now','localtime'))
+);
+CREATE INDEX IF NOT EXISTS idx_views_opened ON problem_views(opened_at);
+CREATE INDEX IF NOT EXISTS idx_views_problem ON problem_views(problem_id);
+
 -- 设置
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,

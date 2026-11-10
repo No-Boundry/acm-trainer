@@ -19,6 +19,7 @@ import { registerAccountIpc } from './account'
 import { registerProfileIpc } from './profile'
 import { registerSkillIpc } from './skill'
 import { registerRecommendIpc } from './recommend'
+import { registerViewsIpc } from './views'
 
 /**
  * IPC 处理器注册入口。
@@ -54,4 +55,5 @@ export function registerIpc(repos: Repos): void {
   registerProfileIpc(repos)
   registerSkillIpc(repos)
   registerRecommendIpc(repos)
+  registerViewsIpc(repos)
 }

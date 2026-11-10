@@ -8,6 +8,7 @@ import { SettingsRepo } from '../db/repositories/settings'
 import { RatingRepo } from '../db/repositories/rating'
 import { ListsRepo } from '../db/repositories/lists'
 import { PlansRepo } from '../db/repositories/plans'
+import { ViewsRepo } from '../db/repositories/views'
 
 /** 数据访问层聚合（供各 IPC 域使用） */
 export interface Repos {
@@ -22,6 +23,8 @@ export interface Repos {
   lists: ListsRepo
   /** v1.10：训练计划 */
   plans: PlansRepo
+  /** v1.19：刷题记录（打开过的题） */
+  views: ViewsRepo
 }
 
 export function createRepos(): Repos {
@@ -35,6 +38,7 @@ export function createRepos(): Repos {
     settings: new SettingsRepo(db),
     rating: new RatingRepo(db),
     lists: new ListsRepo(db),
-    plans: new PlansRepo(db)
+    plans: new PlansRepo(db),
+    views: new ViewsRepo(db)
   }
 }
