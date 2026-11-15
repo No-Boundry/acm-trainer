@@ -159,14 +159,14 @@ async function main() {
     `界面 "${shownVersion}" / package.json "v${pkgVersion}"`
   )
 
-  // 2) 题库页：知识点（v1.13 起并入标签分栏的第一个 Tab，不再有独立面板）
+  // 2) 题库页：知识点（v1.20 起知识点是唯一的筛选维度，原来的 6 个标签大类已并入知识点）
   await win.locator('.nav-item', { hasText: '题库' }).click()
   await win.waitForTimeout(1200)
-  check('旧「知识点筛选」独立面板已移除（与标签合流）', (await win.locator('.kn-panel').count()) === 0)
-  const knTab = win.locator('.seg-tab', { hasText: '知识点' }).first()
-  check('标签分栏第一个 Tab 为「知识点」', (await knTab.count()) > 0)
-  await knTab.click()
-  await win.waitForTimeout(500)
+  check('旧「知识点筛选」独立面板已移除', (await win.locator('.kn-panel').count()) === 0)
+  check('标签大类分栏已移除（不再有 6 个标签 Tab）', (await win.locator('.seg-tab').count()) === 0, `.seg-tab=${await win.locator('.seg-tab').count()}`)
+  check('裸标签列表已移除', (await win.locator('.tag-row').count()) === 0)
+  const knTitleText = ((await win.locator('.kn-title').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check('知识点区标题与说明就位', /知识点/.test(knTitleText), knTitleText.slice(0, 80))
   const chipCount = await win.locator('.kn-chip').count()
   check('知识点标签数 = 70（v1.19 拆分过大的节点）', chipCount === 70, `实际 ${chipCount}`)
   // v1.12：在线导入已迁移到设置页「题库账号绑定」，题库页只保留粘贴导入与入口
@@ -609,36 +609,24 @@ async function main() {
     await clearV117Btn.first().click()
     await win.waitForTimeout(1200)
   }
-  const pickTagByChip = async (name) => {
-    const tabs = win.locator('.seg-tab')
-    const n = await tabs.count()
-    for (let i = 0; i < n; i += 1) {
-      const tab = tabs.nth(i)
-      if (((await tab.innerText().catch(() => '')) || '').includes('知识点')) continue
-      await tab.click()
-      await win.waitForTimeout(500)
-      const chip = win
-        .locator('.tag-row .chip')
-        .filter({ hasText: new RegExp(`^${name}$`) })
-        .first()
-      if ((await chip.count()) > 0) {
-        await chip.click()
-        await win.waitForTimeout(1400)
-        return true
-      }
-    }
-    return false
+  // v1.20：标签大类已并入知识点，这里改为「点两个知识点」= 勾选它们关联的全部标签
+  const pickNodeChip = async (name) => {
+    const chip = win.locator('.kn-chip').filter({ hasText: name }).first()
+    if ((await chip.count()) === 0) return false
+    await chip.click()
+    await win.waitForTimeout(1400)
+    return true
   }
-  // v1.18：标签一律中文 canonical，「动态规划」同时命中 CF 的 802:C 与 801:B
-  const pickedDp = await pickTagByChip('动态规划')
-  const pickedGraphs = await pickTagByChip('图论')
+  // 「动态规划入门」含 动态规划 系列标签、「图论入门」含 图论 → 802:C（两标签都命中）排在 801:B 前
+  const pickedDp = await pickNodeChip('动态规划入门')
+  const pickedGraphs = await pickNodeChip('图论入门')
   check(
-    '（v1.17）可同时勾选「动态规划」与「图论」两个标签',
+    '（v1.17/v1.20）可同时选中两个知识点（= 勾选它们的全部关联标签）',
     pickedDp && pickedGraphs,
-    `动态规划=${pickedDp} 图论=${pickedGraphs}`
+    `动态规划入门=${pickedDp} 图论入门=${pickedGraphs}`
   )
   const selChipCount117 = await win.locator('.sel-line .chip').count()
-  check('（v1.17）已选条同时显示两个标签', selChipCount117 === 2, `已选 ${selChipCount117} 个`)
+  check('（v1.17）已选条同时显示两个知识点的关联标签', selChipCount117 >= 2, `已选 ${selChipCount117} 个`)
   const matchHintText = ((await win.locator('.match-hint').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
   check(
     '（v1.17）已选条提示取并集与命中数排序',
@@ -654,11 +642,54 @@ async function main() {
   )
   const matchBadges = (await win.locator('tbody tr .mini-tag.match').allInnerTexts()).map((t) => t.trim())
   check(
-    '（v1.17）命中数角标：802:C 为 2/2、801:B 为 1/2',
-    matchBadges[0] === '命中 2/2' && matchBadges[1] === '命中 1/2',
+    '（v1.17）命中数角标：802:C 命中 2 个、801:B 命中 1 个',
+    /^命中 2\/\d+$/.test(matchBadges[0] || '') && /^命中 1\/\d+$/.test(matchBadges[1] || ''),
     matchBadges.join(' | ')
   )
   await win.screenshot({ path: path.join(OUT, '04b-tags-union.png') })
+
+  // 4g-2) v1.20：按「是否已 AC」筛选（技能树按钮 → 题库 .ac-line）
+  const acBtn = win.locator('.ac-filter').first()
+  if ((await acBtn.count()) === 0) {
+    // 需要先回到学习路径打开节点详情（上一段在题库页）
+    await win.locator('.nav-item', { hasText: '学习路径' }).click()
+    await win.waitForTimeout(1200)
+    await win.locator('.node-card', { hasText: '贪心' }).first().click()
+    await win.waitForTimeout(600)
+  }
+  const acBtnNow = win.locator('.ac-filter').first()
+  check('学习路径详情面板出现「排除已 AC」按钮', (await acBtnNow.count()) > 0)
+  const acState0 = await acBtnNow.getAttribute('data-ac').catch(() => null)
+  check('AC 过滤默认关闭（all）', acState0 === 'all', String(acState0))
+  await acBtnNow.click()
+  await win.waitForTimeout(400)
+  const acState1 = await acBtnNow.getAttribute('data-ac').catch(() => null)
+  check('点一次切到「排除已 AC」（notac）', acState1 === 'notac', String(acState1))
+  await win.locator('.go-node-problems').first().click()
+  await win.waitForTimeout(1600)
+  const acLineText = ((await win.locator('.ac-line').first().innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check('题库页出现「排除已 AC」条件条', /排除已 AC/.test(acLineText), acLineText.slice(0, 60))
+  check('跳转链接带 ac=notac', /ac=notac/.test(win.url()), win.url())
+  await win.screenshot({ path: path.join(OUT, '04c-ac-filter.png') })
+  const acChip = win.locator('.ac-line .chip').first()
+  await acChip.click()
+  await win.waitForTimeout(1000)
+  check('点 ✕ 后 AC 条件条消失', (await win.locator('.ac-line').count()) === 0)
+
+  // 4g-3) v1.20：虚拟比赛创建向导同样用知识点组卷
+  await win.locator('.nav-item', { hasText: '虚拟比赛' }).click()
+  await win.waitForTimeout(1400)
+  check('比赛页创建向导出现知识点选择器', (await win.locator('.kn-picker').count()) > 0)
+  check('比赛页不再有标签大类 Tab', (await win.locator('.seg-tab').count()) === 0)
+  const contestKnChip = win.locator('.kn-chip').filter({ hasText: '贪心' }).first()
+  check('比赛页知识点 chip 可点', (await contestKnChip.count()) > 0)
+  await contestKnChip.click()
+  await win.waitForTimeout(600)
+  const contestSel = (await win.locator('.sel-line .chip').allInnerTexts()).map((t) => t.trim())
+  check('选知识点后组卷参数显示其关联标签', contestSel.length > 0, contestSel.slice(0, 4).join(','))
+  await win.screenshot({ path: path.join(OUT, '14c-contest-knowledge.png') })
+  await win.locator('button', { hasText: '全部清空' }).first().click()
+  await win.waitForTimeout(400)
 
   // 4f-3) 首页：已练习标签 + 推荐习题（v1.14 FR-31~FR-33）
   await win.locator('.nav-item', { hasText: '首页' }).click()

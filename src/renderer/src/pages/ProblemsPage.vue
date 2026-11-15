@@ -3,15 +3,13 @@ import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProblemsStore } from '@/stores/problems'
 import { useStatementStore } from '@/stores/statement'
-import { CF_TAGS, LAYER_NAMES } from '@shared/skill-tree'
-import { MASTERY_TIER_META, MASTERY_TIER_ORDER } from '@shared/types'
 import type { SkillNodeReport } from '@shared/types'
 import { invoke } from '@/api/ipc'
 import { useToast } from '@/composables/useToast'
 import { IpcChannels } from '@shared/channels'
-import { groupTagsByCategory } from '@shared/tag-categories'
 import type { Note, PracticeRecord, ProblemRow, ProblemSource, ResultStatus } from '@shared/types'
 import { RESULT_STATUSES } from '@shared/types'
+import KnowledgePicker from '@/components/common/KnowledgePicker.vue'
 
 interface LuoguImportSummary {
   user: { uid: number; name: string; totalPassed: number }
@@ -38,39 +36,13 @@ const importJson = ref('')
 const pasteMode = ref(false)
 const importing = ref(false)
 
-/** 标签按大类分组（FR-8.8） */
-const groupedTags = computed(() => groupTagsByCategory(store.allTags))
-
 /**
- * v1.13：知识点不再是一套独立的「标签并集筛选器」，而是标签分栏里的第一个 Tab。
- * 选中知识点 = 选中该节点关联的全部标签（与标签筛选同一套状态 store.filter.tags），
- * 从而与原有标签功能合为一体：ORM 语义一致、已选 chips 统一、不再出现「两套筛选」。
+ * v1.20（FR-41）：标签已全部整合进知识点，筛选界面**只保留「知识点」一个维度**。
+ * 原来这里是「知识点 Tab + 6 个标签大类 Tab（算法基础/动态规划/图论/数据结构/字符串/其他）」，
+ * 同一个概念有两条入口；现在统一由 `KnowledgePicker`（组件）承担，标签状态仍存于
+ * `store.filter.tags`（选中知识点 = 勾选它的全部关联标签），已选 chips 与命中数角标不变。
  */
-const KNOWLEDGE_CAT = '知识点'
-const tagCategoryNames = computed(() => groupedTags.value.map((g) => g.category))
-
-/** 横向布局：当前激活的分类 Tab（含「知识点」虚拟分类） */
-const activeTagCat = ref('')
-watch(
-  () => [tagCategoryNames.value, store.skills.length] as const,
-  ([names, skillCount]) => {
-    const all = skillCount > 0 ? [KNOWLEDGE_CAT, ...names] : [...names]
-    if (all.length === 0) return
-    if (!all.includes(activeTagCat.value)) activeTagCat.value = all[0]
-  },
-  { immediate: true }
-)
-
-const activeGroupTags = computed(
-  () => groupedTags.value.find((g) => g.category === activeTagCat.value)?.tags ?? []
-)
-
 const selectedTags = computed(() => [...(store.filter.tags ?? [])])
-
-function groupSelectedCount(tags: string[]): number {
-  const selectedTagsSet = new Set(store.filter.tags ?? [])
-  return tags.filter((t) => selectedTagsSet.has(t)).length
-}
 
 /**
  * v1.17：某道题命中了几个已选标签（标签筛选为并集，命中越多排序越靠前）。
@@ -82,9 +54,6 @@ function matchCount(row: ProblemRow): number {
   const set = new Set(selected)
   return row.tags.reduce((n, t) => (set.has(t) ? n + 1 : n), 0)
 }
-
-/** 知识点 Tab 上的已选数量（按节点计） */
-const knTabCount = computed(() => store.knowledgeIds.length)
 
 // 记录练习表单
 // v1.8.1：耗时默认为空（此前默认 0，输入时要先删掉 0，易误记）
@@ -373,81 +342,23 @@ async function submitRecord(): Promise<void> {
 }
 
 /** v1.8：题面用 Edge 浏览器打开（抽屉按钮与列表按钮共用） */
-/** v1.8：知识点（技能树）筛选——按 7 层分组，展示掌握度色点与练习题数 */
-// v1.8：五档配色/标签派生自 shared/types（色相分离）
-const TIER_DOT: Record<string, string> = Object.fromEntries(
-  MASTERY_TIER_ORDER.map((t) => [t, MASTERY_TIER_META[t].color])
-)
-const TIER_TEXT: Record<string, string> = Object.fromEntries(
-  MASTERY_TIER_ORDER.map((t) => [t, MASTERY_TIER_META[t].label])
-)
-
-const CF_TAG_SET = new Set(CF_TAGS.map((t) => t.toLowerCase()))
-
-/** 综合节点（无关联标签）不参与筛题：如 final_sprint */
+/**
+ * 综合节点（无关联标签）不参与筛题：如 final_sprint。
+ * v1.20 起知识点渲染搬进 `KnowledgePicker`，这里只保留点击入口需要的判断。
+ */
 function isFilterable(n: SkillNodeReport): boolean {
   return n.tags.length > 0
 }
-/** 题源侧提示：标签命中 CF 官方标签 / 仅洛谷侧中文标签 → 帮助用户预期筛出哪一侧题目 */
-function nodeSourceHint(n: SkillNodeReport): string {
-  if (!isFilterable(n)) return '综合节点：无关联标签，不参与筛题'
-  const hasCf = n.tags.some((t) => CF_TAG_SET.has(t.toLowerCase()))
-  const hasLuogu = n.tags.some((t) => !CF_TAG_SET.has(t.toLowerCase()))
-  if (hasCf && hasLuogu) return '可筛出 Codeforces 与洛谷题'
-  return hasCf ? '标签为 CF 侧：主要筛出 Codeforces 题' : '标签为洛谷侧：主要筛出洛谷题'
-}
 
-// v1.8.1 → v1.13：技能树跳转过来时直接切到「知识点」标签页（面板已并入标签分栏）
+// v1.8.1 → v1.20：技能树跳过来时只需清掉「打开请求」标记。
+// 筛选区现在固定是知识点（没有标签 Tab 可切了），滚动定位由 route.query.knowledge 处理。
 watch(
   () => store.knowledgeOpenRequested,
   (v) => {
-    if (v) {
-      activeTagCat.value = KNOWLEDGE_CAT
-      store.knowledgeOpenRequested = false
-    }
+    if (v) store.knowledgeOpenRequested = false
   },
   { immediate: true }
 )
-const knowledgeGroups = computed(() => {
-  const byLayer = new Map<number, SkillNodeReport[]>()
-  for (const n of store.skills) {
-    const arr = byLayer.get(n.layer) ?? []
-    arr.push(n)
-    byLayer.set(n.layer, arr)
-  }
-  return [...byLayer.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([layer, nodes]) => ({
-      layer,
-      name: LAYER_NAMES[layer] ?? `L${layer}`,
-      nodes: nodes.slice().sort((a, b) => b.stats.acProblems - a.stats.acProblems)
-    }))
-})
-const knowledgeSelectedCount = computed(() => store.knowledgeIds.length)
-
-/** 整体掌握概览（按五档统计知识点数量，便于一眼看出薄弱面） */
-const knowledgeSummary = computed(() => {
-  const order = ['master', 'proficient', 'learning', 'newbie', 'untouched'] as const
-  const counts = new Map<string, number>()
-  for (const n of store.skills) counts.set(n.tier, (counts.get(n.tier) ?? 0) + 1)
-  return order
-    .filter((t) => (counts.get(t) ?? 0) > 0)
-    .map((t) => ({ tier: t, label: tierText(t), count: counts.get(t) ?? 0 }))
-})
-
-function tierDot(tier: string): string {
-  return TIER_DOT[tier] ?? '#6c7086'
-}
-function tierText(tier: string): string {
-  return TIER_TEXT[tier] ?? tier
-}
-/** v1.13：节点选中态 = 其全部关联标签都被选中（与标签筛选同一套状态源） */
-function isKnowledgeOn(id: string): boolean {
-  const n = store.skills.find((x) => x.id === id)
-  if (!n || n.tags.length === 0) return false
-  const tags = new Set(store.filter.tags ?? [])
-  return n.tags.every((t) => tags.has(t))
-}
 
 async function openStatement(problemId?: string): Promise<void> {
   const id = problemId ?? selected.value?.id
@@ -472,6 +383,10 @@ function fmtTime(s: string | null | undefined): string {
 
 onMounted(() => {
   store.init()
+  // v1.20 FR-42：技能树详情「排除已 AC / 只看已 AC」跳转 → ?ac=ac | ?ac=notac
+  const rawAc = route.query.ac
+  const acParam = Array.isArray(rawAc) ? rawAc[0] : rawAc
+  if (acParam === 'ac' || acParam === 'notac') store.filter.ac = acParam
   // v1.8.1：支持 ?knowledge=id1,id2 深链（技能树「去题库练习」跳转；刷新/回退后仍保留选择）
   const rawKnowledge = route.query.knowledge
   const knowledgeParam = Array.isArray(rawKnowledge) ? rawKnowledge.join(',') : (rawKnowledge ?? '')
@@ -480,8 +395,7 @@ onMounted(() => {
     .map((x) => x.trim())
     .filter(Boolean)
   if (knowledgeIds.length > 0) {
-    // 有深链：切到知识点标签页并按其关联标签加载（避免先发一次空筛选请求）
-    activeTagCat.value = KNOWLEDGE_CAT
+    // 有深链：按其关联标签加载（避免先发一次空筛选请求）
     // v1.14 FR-32：技能树详情面板可手动选取关联标签 → ?knowledge=dsu&tags=并查集,图
     const rawTags = route.query.tags
     const tagParam = Array.isArray(rawTags) ? rawTags.join(',') : (rawTags ?? '')
@@ -625,29 +539,14 @@ onMounted(() => {
         </button>
       </div>
 
-      <!-- v1.13：知识点并入标签分栏（第一个 Tab），与原有标签共用一套筛选与「已选」chips -->
+      <!-- v1.20（FR-41）：标签已整合进知识点，筛选区只保留「知识点」一个维度 -->
       <div class="tag-horz">
-        <div class="tag-tabs">
-          <button
-            v-if="store.skills.length > 0"
-            class="seg-tab"
-            :class="{ on: activeTagCat === KNOWLEDGE_CAT }"
-            :title="'知识点 = 一组标签：选中知识点会自动选中其关联标签'"
-            @click="activeTagCat = KNOWLEDGE_CAT"
-          >
-            {{ KNOWLEDGE_CAT }}
-            <span v-if="knTabCount > 0" class="sel-count">{{ knTabCount }}</span>
-          </button>
-          <button
-            v-for="g in groupedTags"
-            :key="g.category"
-            class="seg-tab"
-            :class="{ on: activeTagCat === g.category }"
-            @click="activeTagCat = g.category"
-          >
-            {{ g.category }}
-            <span v-if="groupSelectedCount(g.tags) > 0" class="sel-count">{{ groupSelectedCount(g.tags) }}</span>
-          </button>
+        <div class="kn-title-row">
+          <span class="kn-title">知识点</span>
+          <span class="dim small">
+            按知识点筛题：点节点 = 勾选它关联的全部标签
+            （v1.20 起原来的 6 个标签大类已合并进知识点，不再需要逐个大类翻标签）
+          </span>
         </div>
 
         <div v-if="selectedTags.length" class="sel-line">
@@ -664,55 +563,20 @@ onMounted(() => {
           <span v-if="selectedTags.length > 1" class="dim small match-hint">取并集 · 命中标签越多越靠前</span>
         </div>
 
-        <!-- 知识点 Tab：按层分组的节点（保留掌握度色点与练习题数） -->
-        <div v-if="activeTagCat === KNOWLEDGE_CAT" class="kn-body">
-          <div v-if="store.skills.length === 0" class="dim small">掌握情况加载中…（技能树统计未就绪）</div>
-          <div v-else class="kn-summary-line dim small">
-            <span class="kn-sum-item">已选 {{ knowledgeSelectedCount }} 个知识点</span>
-            <span v-for="s in knowledgeSummary" :key="s.tier" class="kn-sum-item">
-              <span class="dot" :style="{ background: tierDot(s.tier) }" />{{ s.label }} {{ s.count }}
-            </span>
-          </div>
-          <div v-for="g in knowledgeGroups" :key="g.layer" class="kn-group">
-            <span class="kn-layer">L{{ g.layer }} · {{ g.name }}</span>
-            <div class="kn-chips">
-              <button
-                v-for="n in g.nodes"
-                :key="n.id"
-                class="kn-chip"
-                :class="{
-                  on: isKnowledgeOn(n.id),
-                  done: ['proficient', 'master'].includes(n.tier),
-                  disabled: !isFilterable(n)
-                }"
-                :disabled="!isFilterable(n)"
-                :title="`${n.name}：${tierText(n.tier)} · 已练习 ${n.stats.attempted} 题 / 已 AC ${n.stats.acProblems} 题 · 关联标签 ${n.tags.length} 个 · ${nodeSourceHint(n)}`"
-                @click="toggleKnowledgeNode(n)"
-              >
-                <span class="dot" :style="{ background: tierDot(n.tier) }" />
-                <span class="kn-name">{{ n.name }}</span>
-                <span class="kn-stat mono">{{ n.stats.attempted }}/{{ n.stats.acProblems }}</span>
-              </button>
-            </div>
-          </div>
-          <p class="dim small kn-tip">
-            知识点与上方标签是同一套筛选：点节点等于勾选它关联的全部标签（再点取消）。数字含义：已练习题数 / 已 AC 题数；
-            色点=掌握度（灰未开始 · 青初学 · 蓝练习中 · 绿基本掌握 · 金熟练）。
-          </p>
-        </div>
-
-        <!-- 普通标签分组 -->
-        <div v-else class="tag-row">
-          <button
-            v-for="tag in activeGroupTags"
-            :key="tag"
-            class="chip"
-            :class="{ on: (store.filter.tags ?? []).includes(tag) }"
-            @click="toggleTag(tag)"
-          >
-            {{ tag }}
+        <div v-if="(store.filter.ac ?? 'all') !== 'all'" class="ac-line">
+          <span class="dim small">题目状态：</span>
+          <button class="chip on" @click="onFilter({ ac: 'all' })">
+            {{ store.filter.ac === 'ac' ? '只看已 AC' : '排除已 AC' }} ✕
           </button>
         </div>
+
+        <KnowledgePicker
+          :skills="store.skills"
+          :selected-ids="store.knowledgeIds"
+          :selected-tags="selectedTags"
+          @toggle="toggleKnowledgeNode"
+          @clear="clearAllTagFilters()"
+        />
       </div>
 
       <!-- v1.12：在线导入（UID 抓取）已迁移到「设置 → 题库账号绑定」，这里只保留粘贴导入与入口 -->
@@ -1014,6 +878,19 @@ onMounted(() => {
 }
 .grow {
   flex: 1;
+}
+/* v1.20 FR-41：筛选区标题（标签已整合进知识点，不再有分类 Tab） */
+.kn-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 2px 0 4px;
+}
+.kn-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 .kn-summary-line {
   display: flex;

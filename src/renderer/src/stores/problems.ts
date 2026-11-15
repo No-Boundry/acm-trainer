@@ -55,6 +55,8 @@ export const useProblemsStore = defineStore('problems', {
       tags: [],
       keyword: '',
       practiced: 'all',
+      // v1.20 FR-42：是否已 AC（'all' | 'ac' | 'notac'）；技能树详情可一键「排除/只看已 AC」
+      ac: 'all',
       sortBy: 'rating',
       sortDir: 'desc'
     },
@@ -102,6 +104,7 @@ export const useProblemsStore = defineStore('problems', {
         tags: [...(this.filter.tags ?? [])],
         keyword: this.filter.keyword ?? '',
         practiced: this.filter.practiced ?? 'all',
+        ac: this.filter.ac ?? 'all',
         sortBy: this.filter.sortBy ?? 'rating',
         sortDir: this.filter.sortDir ?? 'desc'
       })

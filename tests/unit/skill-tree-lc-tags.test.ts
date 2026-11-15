@@ -112,9 +112,11 @@ describe('知识点节点标签（含力扣中文标签接入）', () => {
   })
 
   it('未接入过于宽泛的容器类标签（避免知识点筛选被稀释；仅容器/工程/交互专用节点例外）', () => {
-    const tooGeneric = ['数组', '哈希表', '字符串', '矩阵', '设计', '交互', '数据流', '计数']
+    const tooGeneric = ['数组', '哈希表', '字符串', '矩阵', '设计', '交互', '数据流']
     // v1.10：这些节点本身就是「容器与 STL / 大模拟工程实现 / 交互题 / 矩阵与线性代数」主题，允许承载容器类标签
-    const allowed = new Set(['stl_usage', 'sim_impl', 'interactive', 'matrix_linear'])
+    // v1.20 FR-41：把标签大类整合进知识点后，「计数」只能落在组合数学节点（原本它是筛选界面里的独立标签，
+    // 有 217 道题；不并进来就没有任何入口能筛到它们）。
+    const allowed = new Set(['stl_usage', 'sim_impl', 'interactive', 'matrix_linear', 'combo'])
     for (const n of SKILL_NODES) {
       if (allowed.has(n.id)) continue
       for (const t of tooGeneric) {
@@ -151,10 +153,30 @@ describe('知识点粒度（v1.19 FR-39：单节点标签过多则拆分）', ()
     expect(SKILL_NODES.length).toBe(70)
   })
 
-  it('每个节点的关联标签不超过 6 个（综合节点除外）', () => {
+  it('每个节点的关联标签不超过 10 个（v1.20 FR-41：标签大类并入知识点后上限放宽到 10）', () => {
     for (const n of SKILL_NODES) {
       if (n.id === 'final_sprint') continue
-      expect(n.tags.length, `${n.id} 关联标签过多（${n.tags.length}）`).toBeLessThanOrEqual(6)
+      expect(n.tags.length, `${n.id} 关联标签过多（${n.tags.length}）`).toBeLessThanOrEqual(10)
+    }
+  })
+
+  it('v1.20 FR-41：题库里有量但原先只在筛选界面裸露的概念标签，已归入知识点', () => {
+    const expectIn = new Map<string, string>([
+      ['搜索', 'search'],
+      ['递推', 'dp'],
+      ['树链剖分', 'lca'],
+      ['根号分治', 'sparse_block'],
+      ['莫队', 'sparse_block'],
+      ['动态规划优化', 'dp_opt'],
+      ['最小圆覆盖', 'geo_adv'],
+      ['生成函数', 'fft'],
+      ['动态树 LCT', 'balanced_tree'],
+      ['连通块', 'graph_conn']
+    ])
+    for (const [tag, nodeId] of expectIn) {
+      const node = SKILL_NODES.find((n) => n.id === nodeId)
+      expect(node, `缺少节点 ${nodeId}`).toBeTruthy()
+      expect(node!.tags, `${nodeId} 应包含「${tag}」`).toContain(tag)
     }
   })
 

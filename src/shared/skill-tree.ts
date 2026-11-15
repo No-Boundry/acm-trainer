@@ -50,11 +50,11 @@ export const LAYER_NAMES: readonly string[] = [
 export const SKILL_NODES: readonly SkillNode[] = [
   // ---------- L0 基础入门 ----------
   {
-    id: 'math_basic', name: '基础数学', layer: 0, tags: ['math', '数学', '最大公约数', '最小公倍数', '欧几里得算法'], dependsOn: [],
+    id: 'math_basic', name: '基础数学', layer: 0, tags: ['math', '数学', '最大公约数', '最小公倍数', '欧几里得算法', '进制'], dependsOn: [],
     intro: '整除、gcd/lcm 与辗转相除等基本运算；几乎所有算法题都会用到的数学底座，素数、同余、组合等专题都建立在它之上。'
   },
   {
-    id: 'impl', name: '模拟与实现', layer: 0, tags: ['implementation', '模拟', '链表', '双向链表'], dependsOn: [],
+    id: 'impl', name: '模拟与实现', layer: 0, tags: ['implementation', '模拟', '链表', '双向链表', '分类讨论', '随机化'], dependsOn: [],
     intro: '按题意直接模拟过程，细心处理边界与输出格式；把自然语言规则准确翻译成代码，是竞赛解题的底层能力。'
   },
   {
@@ -80,7 +80,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '用预处理把子段和、区间增量查询降到 O(1)/O(log n)；把区间操作转化为点操作，是大量题目的前置优化技巧。'
   },
   {
-    id: 'recursion', name: '递归与分治', layer: 1, tags: ['divide and conquer', '递归', '分治'], dependsOn: ['enum'],
+    id: 'recursion', name: '递归与分治', layer: 1, tags: ['divide and conquer', '递归', '分治', 'cdq 分治'], dependsOn: ['enum'],
     intro: '把问题拆成同构子问题再合并结果；是搜索、动态规划、归并排序与快速幂等方法论基础。'
   },
   {
@@ -88,7 +88,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '两个指针协同扫描线性结构，把 O(n²) 压到 O(n)；常用于有序数组配对、滑动窗口与去重类问题。'
   },
   {
-    id: 'bitops', name: '位运算', layer: 1, tags: ['bitmasks', '位运算'], dependsOn: ['math_basic'],
+    id: 'bitops', name: '位运算', layer: 1, tags: ['bitmasks', '位运算', 'bitset'], dependsOn: ['math_basic'],
     intro: '按位与/或/异或/移位的性质与技巧；状压 DP、集合运算、快速幂与二进制枚举都建立在位运算之上。'
   },
   {
@@ -100,7 +100,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '用数组/字符串模拟大整数四则运算（C++ 无内置大数）；涉及加减乘除与压位优化，使用 Java/Python 时可略。'
   },
   {
-    id: 'prime', name: '素数筛法与质因数分解', layer: 1, tags: ['质因数分解', '素性测试', '素数筛法'], dependsOn: ['math_basic'],
+    id: 'prime', name: '素数筛法与质因数分解', layer: 1, tags: ['质因数分解', '素性测试', '素数筛法', '素数判断'], dependsOn: ['math_basic'],
     intro: '试除、埃氏筛与线性筛判定素数，以及唯一分解定理下的质因数分解；数论题的前置工具，也是约数枚举与积性函数的基础。'
   },
   {
@@ -109,7 +109,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
   },
   // ---------- v1.10 新增：国内比赛高频考点 ----------
   {
-    id: 'stl_usage', name: '容器与 STL 应用', layer: 1, tags: ['数组', '哈希表', '有序集合', '堆（优先队列）', '字符串', 'data structures'], dependsOn: ['impl'],
+    id: 'stl_usage', name: '容器与 STL 应用', layer: 1, tags: ['数组', '哈希表', '有序集合', '堆（优先队列）', '字符串', 'data structures', 'STL'], dependsOn: ['impl'],
     intro: '熟练使用 vector / map / set / priority_queue / string 等容器与算法库（sort、lower_bound、next_permutation）：国内比赛与天梯赛里「会用 STL」往往直接决定实现速度与罚时。'
   },
   {
@@ -117,7 +117,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '把冗长的题面规则完整、无遗漏地翻译成代码（多状态、分情况、边界处理）。蓝桥杯、天梯赛与区域赛签到题大量出现，是最考验耐心与工程习惯的一类题。'
   },
   {
-    id: 'brute_force', name: '暴力与剪枝', layer: 1, tags: ['brute force', '枚举', 'Brute-Force Search', '回溯'], dependsOn: ['enum'],
+    id: 'brute_force', name: '暴力与剪枝', layer: 1, tags: ['brute force', '枚举', 'Brute-Force Search', '回溯', '剪枝'], dependsOn: ['enum'],
     intro: '先写出正确暴力再逐步优化：子集/排列枚举、回溯搜索、可行性剪枝、最优性剪枝与卡常技巧。OI 赛制里「暴力拿部分分」是稳定得分的重要手段。'
   },
   {
@@ -131,15 +131,15 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '受限线性结构及其应用：括号匹配、表达式求值、单调队列滑动窗口等；也是单调栈、堆等进阶结构的前置。'
   },
   {
-    id: 'search', name: '搜索 DFS/BFS', layer: 2, tags: ['dfs and similar', '深度优先搜索 DFS', '深度优先搜索', '广度优先搜索 BFS', '广度优先搜索'], dependsOn: ['recursion', 'enum'],
+    id: 'search', name: '搜索 DFS/BFS', layer: 2, tags: ['dfs and similar', '深度优先搜索 DFS', '深度优先搜索', '广度优先搜索 BFS', '广度优先搜索', '搜索'], dependsOn: ['recursion', 'enum'],
     intro: '深度优先与广度优先遍历状态空间：DFS 负责连通性与回溯框架，BFS 擅长无权最短路与按层扩展；是暴力枚举与图论的核心手段。'
   },
   {
-    id: 'graph', name: '图论入门', layer: 2, tags: ['graphs', '图论', '图', '拓扑排序', '有向无环图', '图的着色'], dependsOn: ['search'],
+    id: 'graph', name: '图论入门', layer: 2, tags: ['graphs', '图论', '图', '拓扑排序', '有向无环图', '图的着色', '图论建模', '基环树'], dependsOn: ['search'],
     intro: '图的存储（邻接表/邻接矩阵）与遍历、度数、连通块、拓扑排序与 DAG 上的递推；最短路、生成树、网络流等一切图算法都建立在此之上。'
   },
   {
-    id: 'dp', name: '动态规划入门', layer: 2, tags: ['dp', '动态规划 DP', '动态规划', '记忆化'], dependsOn: ['recursion', 'greedy', 'prefix'],
+    id: 'dp', name: '动态规划入门', layer: 2, tags: ['dp', '动态规划 DP', '动态规划', '记忆化', '递推', '数位 DP'], dependsOn: ['recursion', 'greedy', 'prefix'],
     intro: '把问题分解为重叠子问题并记录状态避免重复计算；状态设计 + 转移方程 + 边界是通用套路，线性/区间/背包/树上 DP 构成最大的题型家族。'
   },
   {
@@ -151,7 +151,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '近常数时间维护集合合并与连通性查询；最小生成树、离线问题、带权并查集等大量场景的通用底座。'
   },
   {
-    id: 'fenwick', name: '树状数组', layer: 2, tags: ['树状数组'], dependsOn: ['prefix'],
+    id: 'fenwick', name: '树状数组', layer: 2, tags: ['树状数组', '离散化'], dependsOn: ['prefix'],
     intro: '基于 lowbit 的轻量数据结构，支持单点修改与前缀求和；比线段树实现简单，适合动态前缀统计与逆序对问题。'
   },
 
@@ -165,11 +165,11 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '利用元素单调性在线性时间求左右最近更大/更小元素与滑动窗口最值；「下一个更大元素」类问题的标准解法。'
   },
   {
-    id: 'segtree', name: '线段树', layer: 3, tags: ['data structures', '线段树', '扫描线', '区间最值查询', '有序集合'], dependsOn: ['fenwick'],
+    id: 'segtree', name: '线段树', layer: 3, tags: ['data structures', '线段树', '扫描线', '区间最值查询', '有序集合', '离线处理', '树形数据结构'], dependsOn: ['fenwick'],
     intro: '把区间问题分解为 O(log n) 个节点维护，支持区间查询/修改与懒标记；扫描线求面积、区间最值等经典应用，也是可持久化与树套树的前置。'
   },
   {
-    id: 'sparse_block', name: '稀疏表与分块', layer: 3, tags: ['Sparse Table', 'Sqrt Decomposition'], dependsOn: ['fenwick'],
+    id: 'sparse_block', name: '稀疏表与分块', layer: 3, tags: ['Sparse Table', 'Sqrt Decomposition', '根号分治', '莫队'], dependsOn: ['fenwick'],
     intro: 'ST 表做 O(1) 静态区间最值（倍增预处理），分块用「整块打标记 + 边角暴力」在 O(√n) 内处理区间问题；两者都是比线段树更轻的替代方案。'
   },
   {
@@ -177,7 +177,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '中缀/后缀表达式求值、括号匹配与括号序列合法性判定；是大模拟题与「字符串 + 栈」组合题的常见内核。'
   },
   {
-    id: 'interactive', name: '交互题与提答', layer: 3, tags: ['interactive', '交互'], dependsOn: ['impl'],
+    id: 'interactive', name: '交互题与提答', layer: 3, tags: ['interactive', '交互', '通信题'], dependsOn: ['impl'],
     intro: '与评测程序交互（询问—回答式）或构造式输出：考的是策略设计（二分、随机化、分组）与 I/O 规范，区域赛与多校赛常见。'
   },
   {
@@ -185,7 +185,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '快速幂、费马小定理与欧拉定理/欧拉函数；竞赛数论题的地基，也是逆元、莫比乌斯反演与多项式专题的前置。'
   },
   {
-    id: 'combo', name: '组合数学', layer: 3, tags: ['combinatorics', '组合数学', '容斥原理', '抽屉原理'], dependsOn: ['math_basic'],
+    id: 'combo', name: '组合数学', layer: 3, tags: ['combinatorics', '组合数学', '容斥原理', '抽屉原理', '计数', '排列组合'], dependsOn: ['math_basic'],
     intro: '排列组合计数、二项式系数与常用恒等式（隔板法、容斥、抽屉原理）；计数题与概率题的核心工具。'
   },
   {
@@ -197,7 +197,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: 'Kruskal（并查集）与 Prim 求连通代价最小的生成树；衍生最小瓶颈路、次小生成树与生成树计数问题。'
   },
   {
-    id: 'graph_conn', name: '连通性与割点桥', layer: 3, tags: ['强连通分量', 'Tarjan 强连通分量算法', 'Kosaraju 算法', '双连通分量', '割点', '桥'], dependsOn: ['graph'],
+    id: 'graph_conn', name: '连通性与割点桥', layer: 3, tags: ['强连通分量', 'Tarjan 强连通分量算法', 'Kosaraju 算法', '双连通分量', '割点', '桥', 'Tarjan', '连通块'], dependsOn: ['graph'],
     intro: 'Tarjan 求强连通分量与缩点（DAG 上 DP）、无向图的双连通分量/割点/桥；是「按连通性分类讨论」类难题的标准工具。'
   },
   {
@@ -227,7 +227,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: 'KMP 单模式匹配（前缀函数 O(n+m)）与 Manacher 回文半径；字符串处理的基础，也是 AC 自动机、后缀结构的前置。'
   },
   {
-    id: 'lca', name: 'LCA 与树上问题', layer: 4, tags: ['最近公共祖先 LCA', 'trees', '最近公共祖先', 'Binary Lifting'], dependsOn: ['graph', 'dp_tree'],
+    id: 'lca', name: 'LCA 与树上问题', layer: 4, tags: ['最近公共祖先 LCA', 'trees', '最近公共祖先', 'Binary Lifting', '树链剖分'], dependsOn: ['graph', 'dp_tree'],
     intro: '倍增/树剖/Tarjan 求最近公共祖先，配合树上路径、直径、树上差分；处理树上距离与路径统计类问题的骨架。'
   },
   {
@@ -251,11 +251,11 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '公平组合游戏（Nim、SG 函数、必胜/必败态判定）；牛客系与区域赛的思维题常以博弈为外壳。'
   },
   {
-    id: 'prob_stats', name: '概率与期望', layer: 4, tags: ['probabilities', '概率与统计'], dependsOn: ['dp', 'math_basic'],
+    id: 'prob_stats', name: '概率与期望', layer: 4, tags: ['probabilities', '概率与统计', '期望'], dependsOn: ['dp', 'math_basic'],
     intro: '概率 DP、期望线性性、随机化算法与蒙特卡洛估计；难度不低但套路清晰，是区域赛与 NOIP 提高组的常见进阶考点。'
   },
   {
-    id: 'matrix_linear', name: '矩阵与线性代数', layer: 4, tags: ['matrices', '线性代数', '矩阵'], dependsOn: ['math_basic', 'mod_inv'],
+    id: 'matrix_linear', name: '矩阵与线性代数', layer: 4, tags: ['matrices', '线性代数', '矩阵', '矩阵加速', '矩阵乘法'], dependsOn: ['math_basic', 'mod_inv'],
     intro: '矩阵乘法与递推加速（矩阵快速幂）、高斯消元与线性基；把「递推 + 取模」的大规模问题降到 O(n³ log k)。'
   },
   {
@@ -275,7 +275,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '0-1 BFS（双端队列处理 0/1 边权）与 k 短路（A* 或可持久化左偏树）；把最短路模型推广到分层、边权受限与多路径场景。'
   },
   {
-    id: 'balanced_tree', name: '平衡树与树堆', layer: 4, tags: ['树堆', 'Splay Tree', 'Cartesian Tree'], dependsOn: ['segtree'],
+    id: 'balanced_tree', name: '平衡树与树堆', layer: 4, tags: ['树堆', 'Splay Tree', 'Cartesian Tree', '动态树 LCT'], dependsOn: ['segtree'],
     intro: 'Treap/Splay/笛卡尔树的旋转与分裂合并，支持排名、前驱后继、区间翻转；有序集合题在需要第 k 大或区间操作时的替代结构。'
   },
   {
@@ -297,7 +297,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: 'Trie 上建 fail 指针做多模式匹配（AC 自动机，常配合 fail 树上 DP/拓扑），以及最小表示法与 Lyndon 分解；多串匹配与循环同构题的核心。'
   },
   {
-    id: 'dp_opt', name: 'DP 优化（斜率等）', layer: 5, tags: ['斜率优化'], dependsOn: ['dp', 'number'],
+    id: 'dp_opt', name: 'DP 优化（斜率等）', layer: 5, tags: ['斜率优化', '动态规划优化'], dependsOn: ['dp', 'number'],
     intro: '单调队列、斜率优化与四边形不等式把 O(n²) 压到 O(n log n)/O(n)；大数据范围 DP 的进阶必修课。'
   },
   {
@@ -313,7 +313,7 @@ export const SKILL_NODES: readonly SkillNode[] = [
     intro: '利用莫比乌斯函数反演化简 gcd/lcm 类求和；数论高级专题核心，通常配合线性筛与整除分块使用。'
   },
   {
-    id: 'fft', name: '多项式与 FFT', layer: 5, tags: ['fft', '快速傅里叶变换 FFT'], dependsOn: ['combo', 'mod_inv'],
+    id: 'fft', name: '多项式与 FFT', layer: 5, tags: ['fft', '快速傅里叶变换 FFT', '快速数论变换 NTT', '生成函数', '多项式'], dependsOn: ['combo', 'mod_inv'],
     intro: '快速傅里叶变换把多项式乘法降到 O(n log n)；是生成函数计数与字符串快速匹配的底层引擎。'
   },
   {

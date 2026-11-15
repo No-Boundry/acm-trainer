@@ -254,6 +254,11 @@ export interface ProblemFilter {
   tagsAny?: string[]
   keyword?: string
   practiced?: 'all' | 'done' | 'undone'
+  /**
+   * v1.20 FR-42：按「是否已经 AC 过」筛选（与 practiced 不同：practiced 只看有没有提交记录，
+   * 这里只认 status = 'AC' 的记录）。技能树详情面板的「排除/只看已 AC」按钮用它。
+   */
+  ac?: 'all' | 'ac' | 'notac'
   sortBy?: 'rating' | 'id' | 'solvedCount'
   sortDir?: 'asc' | 'desc'
 }

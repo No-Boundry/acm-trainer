@@ -46,9 +46,7 @@ async function main() {
   // ================= 场景 1：记录练习 → 掌握度与统计联动 =================
   log('=== 场景 1：记录练习联动 ===')
   await gotoPage(win, '题库')
-  // v1.13：知识点并入标签分栏 → 先切到「知识点」Tab 再读取计数
-  await win.locator('.seg-tab', { hasText: '知识点' }).first().click()
-  await win.waitForTimeout(300)
+  // v1.20：知识点是唯一筛选维度，直接读 chip（不再需要先切 Tab）
   const dpBefore = await readKnowledgeChip(win, '动态规划入门')
   check('知识点「动态规划入门」标签可读', !!dpBefore, String(dpBefore))
 
@@ -173,7 +171,7 @@ async function main() {
   check('URL 携带 knowledge 参数', /knowledge=/.test(win.url()), win.url())
 
   const panelOpen = await win.locator('.kn-chips').count()
-  check('自动切到「知识点」标签页', panelOpen > 0)
+  check('题库页显示知识点筛选区', panelOpen > 0)
   const selectedChips = await win.locator('.kn-chip.on').count()
   check(
     '建议学习的知识点已全部选中',

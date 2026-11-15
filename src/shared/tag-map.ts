@@ -79,7 +79,15 @@ export const TAG_ALIASES: Readonly<Record<string, readonly string[]>> = {
   // ---- 中文同义写法 ----
   字典树: ['字典树 Trie'],
   记忆化搜索: ['记忆化'],
-  堆: ['优先队列', '堆（优先队列）']
+  堆: ['优先队列', '堆（优先队列）'],
+
+  // ---- v1.20 FR-41：整合进知识点时顺手补的等价写法 ----
+  // 这些都指向已有的知识点标签，合并后「同概念两个拼写」不会再各算一次命中。
+  最大公约数: ['最大公约数 gcd', 'gcd', 'Greatest Common Divisor'],
+  'Tarjan 强连通分量算法': ['Tarjan'],
+  快速数论变换: ['快速数论变换 NTT', 'NTT'],
+  多项式: ['多项式与生成函数'],
+  STL: ['Standard Template Library']
 }
 
 /** 归一化：去首尾空白、压缩连续空白、小写（用于查找，不改写标签本身） */

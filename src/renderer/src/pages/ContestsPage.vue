@@ -4,14 +4,15 @@ import { invoke } from '@/api/ipc'
 import { useToast } from '@/composables/useToast'
 import { useStatementStore } from '@/stores/statement'
 import { useProblemsStore } from '@/stores/problems'
-import { groupTagsByCategory } from '@shared/tag-categories'
 import { IpcChannels } from '@shared/channels'
+import KnowledgePicker from '@/components/common/KnowledgePicker.vue'
 import type {
   Contest,
   ContestListItem,
   ContestResult,
   ProblemRow,
-  ResultStatus
+  ResultStatus,
+  SkillNodeReport
 } from '@shared/types'
 import { RESULT_STATUSES } from '@shared/types'
 
@@ -44,21 +45,23 @@ const form = ref({
 const generating = ref(false)
 const generated = ref<ProblemRow[]>([])
 
-// 组卷标签选择：横向大类 Tab（与题库页一致，v1.2.1）
-const groupedTags = computed(() => groupTagsByCategory(problemsStore.allTags))
-const activeTagCat = ref('')
-watch(
-  () => groupedTags.value,
-  (groups) => {
-    if (groups.length === 0) return
-    const names = groups.map((g) => g.category)
-    if (!names.includes(activeTagCat.value)) activeTagCat.value = names[0]
-  },
-  { immediate: true }
-)
-const activeGroupTags = computed(
-  () => groupedTags.value.find((g) => g.category === activeTagCat.value)?.tags ?? []
-)
+// v1.20 FR-41：组卷的标签选择与题库页统一 —— 用知识点（节点）而不是标签大类翻找。
+// 选中节点 = 把它的全部关联标签并进 form.tags（与题库页同一套「并集」语义）。
+const selectedNodeIds = computed(() => {
+  const picked = new Set(form.value.tags)
+  if (picked.size === 0) return []
+  return problemsStore.skills.filter((n) => n.tags.length > 0 && n.tags.every((t) => picked.has(t))).map((n) => n.id)
+})
+
+function toggleNode(n: SkillNodeReport): void {
+  const picked = new Set(form.value.tags)
+  const allOn = n.tags.every((t) => picked.has(t))
+  for (const t of n.tags) {
+    if (allOn) picked.delete(t)
+    else picked.add(t)
+  }
+  form.value.tags = [...picked]
+}
 
 // 比赛状态
 const contest = ref<Contest | null>(null)
@@ -229,6 +232,8 @@ onMounted(async () => {
     // 使用默认值 120
   }
   await loadContests()
+  // v1.20 FR-41：组卷改用知识点选择，需要技能树统计（与题库页共用 store）
+  if (!problemsStore.skills.length) await problemsStore.loadSkills()
   if (!problemsStore.allTags.length) await problemsStore.loadTags()
   const running = contests.value.find((c) => c.status === 'running')
   if (running) {
@@ -270,30 +275,25 @@ onBeforeUnmount(() => {
           <input v-model.number="form.ratingMin" class="input w-100" type="number" placeholder="难度 ≥" />
           <input v-model.number="form.ratingMax" class="input w-100" type="number" placeholder="难度 ≤" />
         </div>
-        <div v-if="groupedTags.length" class="tag-horz">
-          <div class="dim small">知识点（可选，横向大类）：</div>
-          <div class="tag-tabs">
-            <button
-              v-for="g in groupedTags"
-              :key="g.category"
-              class="seg-tab"
-              :class="{ on: activeTagCat === g.category }"
-              @click="activeTagCat = g.category"
-            >
-              {{ g.category }}
+        <!-- v1.20 FR-41：组卷的标签选择与题库页同步 —— 只保留「知识点」这一个维度 -->
+        <div v-if="problemsStore.skills.length" class="tag-horz">
+          <div class="dim small">知识点（可选）：点节点 = 用它的关联标签组卷，多选取并集</div>
+          <div v-if="form.tags.length" class="sel-line">
+            <span class="dim small">已选标签：</span>
+            <button v-for="tag in form.tags" :key="tag" class="chip on" @click="toggleTag(tag)">
+              {{ tag }} ✕
             </button>
+            <button class="btn ghost xs" @click="form.tags = []">全部清空</button>
           </div>
-          <div class="tag-row">
-            <button
-              v-for="tag in activeGroupTags"
-              :key="tag"
-              class="chip"
-              :class="{ on: form.tags.includes(tag) }"
-              @click="toggleTag(tag)"
-            >
-              {{ tag }}
-            </button>
-          </div>
+          <KnowledgePicker
+            :skills="problemsStore.skills"
+            :selected-ids="selectedNodeIds"
+            :selected-tags="form.tags"
+            :show-summary="false"
+            :show-tip="false"
+            @toggle="toggleNode"
+            @clear="form.tags = []"
+          />
         </div>
         <div class="actions">
           <button class="btn primary" :disabled="generating" @click="generate()">

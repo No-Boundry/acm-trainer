@@ -353,6 +353,17 @@ export class ProblemsRepo {
     } else if (filter.practiced === 'undone') {
       conditions.push('NOT EXISTS (SELECT 1 FROM practice_records r WHERE r.problem_id = p.id)')
     }
+    // v1.20 FR-42：按「是否已 AC」筛选（技能树详情的「排除/只看已 AC」按钮）
+    // 注意与 practiced 的区别：practiced 只要提交过就算 done，这里必须是 AC 记录。
+    if (filter.ac === 'ac') {
+      conditions.push(
+        "EXISTS (SELECT 1 FROM practice_records r WHERE r.problem_id = p.id AND r.status = 'AC')"
+      )
+    } else if (filter.ac === 'notac') {
+      conditions.push(
+        "NOT EXISTS (SELECT 1 FROM practice_records r WHERE r.problem_id = p.id AND r.status = 'AC')"
+      )
+    }
 
     return { where: conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '', params }
   }

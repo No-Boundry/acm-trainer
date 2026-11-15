@@ -162,6 +162,29 @@ function resetPick(): void {
   pickedTags.value = selectedNode.value ? [...selectedNode.value.tags] : []
 }
 
+/**
+ * v1.20 FR-42：详情面板的两个开关。
+ * - `allPicked` / `togglePickAll()`：确定全选 ↔ 取消全选（一次点到底，不用逐个大类翻）
+ * - `acFilter` / `cycleAcFilter()`：题目 AC 状态三态循环 全部 → 排除已 AC → 只看已 AC
+ *   （跳题库时以 `?ac=` 传给题库页，题库按 practice_records.status='AC' 过滤）
+ */
+const allPicked = computed(() => {
+  const tags = selectedNode.value?.tags ?? []
+  return tags.length > 0 && tags.every((t) => pickedTags.value.includes(t))
+})
+
+function togglePickAll(): void {
+  if (allPicked.value) pickedTags.value = []
+  else resetPick()
+}
+
+const acFilter = ref<'all' | 'ac' | 'notac'>('all')
+
+function cycleAcFilter(): void {
+  // 全部 → 排除已 AC（去补没做过的）→ 只看已 AC（复习已过的）→ 全部
+  acFilter.value = acFilter.value === 'all' ? 'notac' : acFilter.value === 'notac' ? 'ac' : 'all'
+}
+
 /** 用手动选取的标签跳题库（知识点 + 手动标签一起写入题库筛选） */
 async function practicePicked(): Promise<void> {
   const node = selectedNode.value
@@ -172,12 +195,14 @@ async function practicePicked(): Promise<void> {
   }
   try {
     const picked = [...pickedTags.value]
+    const ac = acFilter.value
     await problemsStore.applyKnowledgeTags([node.id], picked)
-    await router.push({
-      path: '/problems',
-      query: { knowledge: node.id, tags: picked.join(',') }
-    })
-    toast.success(`已在题库中按「${node.name}」选中 ${picked.length} 个标签`)
+    if (ac !== 'all') await problemsStore.setFilter({ ac })
+    const query: Record<string, string> = { knowledge: node.id, tags: picked.join(',') }
+    if (ac !== 'all') query.ac = ac
+    await router.push({ path: '/problems', query })
+    const acHint = ac === 'notac' ? '（已排除已 AC 的题）' : ac === 'ac' ? '（只看已 AC 的题）' : ''
+    toast.success(`已在题库中按「${node.name}」选中 ${picked.length} 个标签${acHint}`)
   } catch (e) {
     toast.error(e instanceof Error ? e.message : String(e))
   }
@@ -207,9 +232,10 @@ const nodeTagState = computed(() => {
   })
 })
 
-/** 切节点时把选中标签重置为该节点的默认标签 */
+/** 切节点时把选中标签重置为该节点的默认标签（AC 过滤也回到「全部」） */
 watch(selectedNode, (n) => {
   pickedTags.value = n ? [...n.tags] : []
+  acFilter.value = 'all'
 })
 
 
@@ -599,6 +625,24 @@ onBeforeUnmount(() => {
           📚 去题库练习（选中 {{ pickedTags.length }} 个标签）
         </button>
         <button class="btn ghost xs" :disabled="nodeTagState.length === 0" @click="resetPick()">全选默认标签</button>
+        <!-- v1.20 FR-42：两个开关 —— 全选/取消全选、按是否已 AC 过滤 -->
+        <button
+          class="btn ghost xs pick-all"
+          :disabled="nodeTagState.length === 0"
+          :title="allPicked ? '取消勾选该知识点的全部关联标签' : '一次性勾选该知识点的全部关联标签'"
+          @click="togglePickAll()"
+        >
+          {{ allPicked ? '✕ 取消全选' : '✓ 确定全选' }}
+        </button>
+        <button
+          class="btn ghost xs ac-filter"
+          :class="{ on: acFilter !== 'all' }"
+          :data-ac="acFilter"
+          title="跳题库时按「是否已经 AC 过」过滤：全部 → 排除已 AC → 只看已 AC"
+          @click="cycleAcFilter()"
+        >
+          {{ acFilter === 'all' ? '⊘ 排除已 AC' : acFilter === 'notac' ? '⊘ 排除已 AC（开）' : '✓ 只看已 AC' }}
+        </button>
       </div>
 
       <p class="dim small tip">
@@ -653,6 +697,11 @@ onBeforeUnmount(() => {
 }
 .detail-actions {
   margin-top: 10px;
+}
+/* v1.20 FR-42：AC 过滤开着的状态要能一眼看出（否则会误以为题库结果不对） */
+.ac-filter.on {
+  border-color: #f9e2af;
+  color: #f9e2af;
 }
 /* v1.10：比赛赛道面板 */
 .track-panel {

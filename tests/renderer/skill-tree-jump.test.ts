@@ -216,4 +216,82 @@ describe('学习路径 → 题库（单个知识点）', () => {
     expect(greedyChip.classes()).toContain('done')
     expect(greedyChip.attributes('title')).toContain('题库 5 题')
   })
+
+  // ===== v1.20 FR-42：确定/取消全选 + 排除/只看已 AC =====
+  it('「确定全选 / 取消全选」一键切换全部关联标签', async () => {
+    const { wrapper } = await mountPage()
+    await wrapper.find('.node-card[data-node="greedy"]').trigger('click')
+    await flushPromises()
+
+    // 默认就是全选状态 → 按钮显示「取消全选」
+    expect(wrapper.find('.pick-all').text()).toContain('取消全选')
+    await wrapper.find('.pick-all').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.go-node-problems').text()).toContain('选中 0 个标签')
+    expect(wrapper.findAll('.tag-pick.on')).toHaveLength(0)
+    // 变成「确定全选」，再点回来
+    expect(wrapper.find('.pick-all').text()).toContain('确定全选')
+    await wrapper.find('.pick-all').trigger('click')
+    await flushPromises()
+    expect(wrapper.find('.go-node-problems').text()).toContain('选中 2 个标签')
+    expect(wrapper.findAll('.tag-pick.on')).toHaveLength(2)
+  })
+
+  it('「排除已 AC / 只看已 AC」三态循环，并随节点切换复位', async () => {
+    const { wrapper } = await mountPage()
+    await wrapper.find('.node-card[data-node="greedy"]').trigger('click')
+    await flushPromises()
+
+    const btn = () => wrapper.find('.ac-filter')
+    expect(btn().attributes('data-ac')).toBe('all')
+    expect(btn().text()).toContain('排除已 AC')
+    expect(btn().classes()).not.toContain('on')
+
+    await btn().trigger('click')
+    await flushPromises()
+    expect(btn().attributes('data-ac')).toBe('notac')
+    expect(btn().classes()).toContain('on')
+
+    await btn().trigger('click')
+    await flushPromises()
+    expect(btn().attributes('data-ac')).toBe('ac')
+    expect(btn().text()).toContain('只看已 AC')
+
+    await btn().trigger('click')
+    await flushPromises()
+    expect(btn().attributes('data-ac')).toBe('all')
+
+    // 切节点后复位
+    await btn().trigger('click')
+    await flushPromises()
+    expect(btn().attributes('data-ac')).toBe('notac')
+    await wrapper.find('.node-card[data-node="dp"]').trigger('click')
+    await flushPromises()
+    expect(btn().attributes('data-ac')).toBe('all')
+  })
+
+  it('开着「排除已 AC」时跳题库，把 ac 过滤一起带过去', async () => {
+    const { wrapper, router, store } = await mountPage()
+    await wrapper.find('.node-card[data-node="greedy"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('.ac-filter').trigger('click') // → notac
+    await flushPromises()
+
+    await wrapper.find('.go-node-problems').trigger('click')
+    await flushPromises()
+
+    expect(router.currentRoute.value.path).toBe('/problems')
+    expect(router.currentRoute.value.query.ac).toBe('notac')
+    expect(router.currentRoute.value.query.knowledge).toBe('greedy')
+    expect(store.filter.ac).toBe('notac')
+  })
+
+  it('未开 AC 过滤时跳题库不携带 ac 参数', async () => {
+    const { wrapper, router } = await mountPage()
+    await wrapper.find('.node-card[data-node="greedy"]').trigger('click')
+    await flushPromises()
+    await wrapper.find('.go-node-problems').trigger('click')
+    await flushPromises()
+    expect(router.currentRoute.value.query.ac).toBeUndefined()
+  })
 })
