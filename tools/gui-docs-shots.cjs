@@ -1,12 +1,48 @@
 /**
  * 使用手册配图生成：启动真实应用（独立临时库 + 种子数据），逐页截图到 docs/images/。
  * 用法：node tools/gui-docs-shots.cjs
+ *
+ * 注意：docs/images/ 里除了本脚本生成的图，还有人工补拍的验收截图
+ * （15-dashboard-recommend / 11b-skill-tag-pick / 15b-source-linked / 04b-tags-union /
+ *   12-skill-track / 15c-dashboard-views / 06b-stl-reference），所以**不能整目录删除**，
+ * 只清理本脚本负责的 OWN_SHOTS（避免旧图残留），其余文件原样保留。
  */
 const fs = require('fs')
 const path = require('path')
 const { createRunner, seedData, launchApp, reload, gotoPage, ROOT } = require('./gui-lib.cjs')
 
 const IMAGES = path.join(ROOT, 'docs', 'images')
+
+/** 本脚本负责生成的全部截图（改名 / 下线时同步这份清单，避免 docs/images 残留孤儿图） */
+const OWN_SHOTS = [
+  '01-dashboard.png',
+  '02-problems-knowledge.png',
+  '03-knowledge-filtered.png',
+  '04c-ac-filter.png',
+  '04-drawer-record.png',
+  '04b-leetcode-source.png',
+  '05-skill-tree.png',
+  '06-skill-node-detail.png',
+  '05b-stl-reference.png',
+  '05c-skill-track.png',
+  '05d-problem-lists.png',
+  '05e-review.png',
+  '05f-training-plan.png',
+  '07-stats.png',
+  '07b-stats-difficulty.png',
+  '08-notes.png',
+  '09-note-editor.png',
+  '10-templates.png',
+  '11-contest-create.png',
+  '12-contest-generated.png',
+  '13-contest-running.png',
+  '14c-contest-knowledge.png',
+  '14-contest-result.png',
+  '15-rating.png',
+  '16-settings.png',
+  '17-settings-bottom.png'
+]
+
 const runner = createRunner('.gui-docs')
 const { log } = runner
 
@@ -31,8 +67,8 @@ async function resize(app, width, height) {
 }
 
 async function main() {
-  fs.rmSync(IMAGES, { recursive: true, force: true })
   fs.mkdirSync(IMAGES, { recursive: true })
+  for (const name of OWN_SHOTS) fs.rmSync(path.join(IMAGES, name), { force: true })
 
   const { app, win, userDataDir } = await launchApp(path.join(runner.USER_DATA))
   seedData(userDataDir)
@@ -44,16 +80,15 @@ async function main() {
   await gotoPage(win, '首页')
   await shoot(win, '01-dashboard.png')
 
-  // 2) 题库（知识点筛选展开 + 选中一个知识点）
+  // 2) 题库（v1.20 起筛选区只有「知识点」一个维度：不再有标签大类 Tab / 折叠面板）
   await gotoPage(win, '题库')
-  await win.locator('.kn-panel .kn-toggle').click()
-  await win.waitForTimeout(400)
-  await shoot(win, '02-problems.png')
-  const greedy = win.locator('.kn-chip', { hasText: '贪心' }).first()
-  if ((await greedy.count()) > 0) {
-    await greedy.click()
+  await win.waitForTimeout(700)
+  await shoot(win, '02-problems-knowledge.png')
+  const greedyChip = win.locator('.kn-chip', { hasText: '贪心' }).first()
+  if ((await greedyChip.count()) > 0) {
+    await greedyChip.click()
     await win.waitForTimeout(900)
-    await shoot(win, '03-problems-filtered.png')
+    await shoot(win, '03-knowledge-filtered.png')
     await win.locator('button', { hasText: '清空知识点' }).first().click()
     await win.waitForTimeout(700)
   }
@@ -84,6 +119,30 @@ async function main() {
     await nodeCard.click()
     await win.waitForTimeout(700)
     await shoot(win, '06-skill-node-detail.png')
+  }
+
+  // 5a) v1.20 FR-42：学习路径「⊘ 排除已 AC」→ 跳题库，截题库顶部条件条
+  // 用「动态规划入门」举例（种子数据里 801:B 已 AC、802:C 只 WA）：排除已 AC 后仍剩 1 题，
+  // 比用「贪心」（9 题恰好全 AC）更能说明「排除的是 AC 过的题，不是没做过的题」。
+  await gotoPage(win, '学习路径')
+  await win.waitForTimeout(900)
+  const dpCard = win.locator('.node-card', { hasText: '动态规划入门' }).first()
+  if ((await dpCard.count()) > 0) {
+    await dpCard.click()
+    await win.waitForTimeout(600)
+  }
+  const acFilterBtn = win.locator('.ac-filter').first()
+  if ((await acFilterBtn.count()) > 0) {
+    await acFilterBtn.click()
+    await win.waitForTimeout(400)
+    await win.locator('.go-node-problems').first().click()
+    await win.waitForTimeout(1000)
+    await shoot(win, '04c-ac-filter.png')
+    const acLineClear = win.locator('.ac-line .chip').first()
+    if ((await acLineClear.count()) > 0) {
+      await acLineClear.click()
+      await win.waitForTimeout(700)
+    }
   }
 
   // 5b) STL 速查（v1.8.2）
@@ -174,6 +233,20 @@ async function main() {
   await gotoPage(win, '虚拟比赛')
   await win.waitForTimeout(1200)
   await shoot(win, '11-contest-create.png')
+
+  // 9b) v1.20 FR-41：比赛创建页用知识点组卷（点节点 = 把它全部关联标签并入组卷条件）
+  const contestKnChip = win.locator('.create-view .kn-chip', { hasText: '贪心' }).first()
+  if ((await contestKnChip.count()) > 0) {
+    await contestKnChip.click()
+    await win.waitForTimeout(700)
+    await shoot(win, '14c-contest-knowledge.png')
+    const contestClear = win.locator('.create-view .sel-line button', { hasText: '全部清空' }).first()
+    if ((await contestClear.count()) > 0) {
+      await contestClear.click()
+      await win.waitForTimeout(500)
+    }
+  }
+
   const nameInput = win.locator('.create-view input.input').first()
   await nameInput.fill('示例比赛')
   // .create-view 内只有两个数字输入：难度 ≥ / 难度 ≤（时长与题数是下拉框）

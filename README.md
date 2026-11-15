@@ -37,7 +37,7 @@
 8. 到「⚙️ 设置 → 首页推荐习题」调两栏的**排序方式**与**条数（1–30）**，回首页立即生效；
 9. 到「统计 → 难度分布（按题源）」看各难度段的已练/AC 情况。
 
-📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 24 张真实界面截图 + v1.14 验收截图 2 张 + v1.16 新增的题源联动截图 `15b-source-linked.png`、v1.17 新增的标签并集截图 `04b-tags-union.png`、v1.19.0 新增的首页刷题记录截图 `15c-dashboard-views.png` 与 `12-skill-track.png`、v1.20.0 新增的知识点筛选截图 `02-problems-knowledge.png` / `03-knowledge-filtered.png` / `04c-ac-filter.png` / `14c-contest-knowledge.png`，目录内合计 **35 张**）
+📖 **完整使用说明：[docs/09-使用手册.md](docs/09-使用手册.md)**（含 26 张真实界面截图 + 7 张验收/补充截图——v1.14 二张、v1.16 题源联动 `15b-source-linked.png`、v1.17 标签并集 `04b-tags-union.png`、v1.19 首页刷题记录 `15c-dashboard-views.png` 与 `12-skill-track.png`、v1.20 知识点筛选 `02-problems-knowledge.png` / `03-knowledge-filtered.png` / `04c-ac-filter.png` / `14c-contest-knowledge.png`，目录内合计 **33 张**）
 
 ## 常用命令
 
@@ -53,7 +53,7 @@
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
 | `npm run verify:asar` | **安装包自检（v1.20.0 新增）**：解出 asar 后与 `out/` 逐文件 sha256 比对、校验 asar 内版本号、抽查新功能关键串（发版 SOP 见 [docs/11](docs/11-发布操作手册.md)） |
-| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**24 张**；目录内另有 11 张验收/补充截图——v1.14 二张、v1.16 `15b-source-linked.png`、v1.17 `04b-tags-union.png`、v1.19 `15c-dashboard-views.png` 与 `12-skill-track.png`、v1.20 `02-problems-knowledge.png` / `03-knowledge-filtered.png` / `04c-ac-filter.png` / `14c-contest-knowledge.png` 等，合计 **35 张**） |
+| `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**26 张**；只覆盖脚本自己负责的图，不整目录删除——目录内另有 7 张人工补拍的验收/补充截图，合计 **33 张**；v1.20 起题库页配图已改为知识点筛选版 `02-problems-knowledge.png` / `03-knowledge-filtered.png`） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
 ## 文档
@@ -83,7 +83,7 @@ src/
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取、v1.20 起题库页 / 虚拟比赛页共用 `KnowledgePicker` 知识点选择器）
 tests/             单元 / 集成 / 渲染组件测试（vitest，50 个文件 / 552 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / gui-perf）、安装包自检（**asar-check**）与手册配图脚本（playwright-core）
-docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10 + 发布操作手册 11（含 images/ 截图 35 张）
+docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10 + 发布操作手册 11（含 images/ 截图 33 张）
 backup/            旧版项目归档
 ```
 
@@ -106,7 +106,7 @@ backup/            旧版项目归档
 - **已 AC 过滤**：学习路径节点详情「⊘ 排除已 AC / ✓ 只看已 AC」三态循环（默认不过滤 → 排除已 AC → 只看已 AC → 回到不过滤，切节点复位），跳题库时带 `?ac=notac` / `?ac=ac`，题库页顶部出现「题目状态：排除已 AC ✕」条件条；后端 `ProblemFilter.ac` 用 `EXISTS / NOT EXISTS (SELECT 1 FROM practice_records ... status = 'AC')` 判定 —— 与「已练习（有没有提交记录）」不同，**只提交过 WA 的题在「排除已 AC」里仍保留**（补题要的正是这些）。
 - **发布流程固化**：新增 [docs/11-发布操作手册.md](docs/11-发布操作手册.md)（9 章：一页速查 / 发版准备 / 全量自检 / 构建与 GUI 验收 / 打包与 asar 自检 / 推送与 GitHub Release / 回滚 / 常见问题 / 发版检查表）与 `npm run verify:asar`（解出 asar 后与 `out/` 逐文件 sha256 比对、校验 asar 内版本号、抽查新功能关键串）。
 
-测试 **552/552（50 文件）**、`verify:gui` **131/131**（新增 12 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增截图 4 张（`02-problems-knowledge.png`、`03-knowledge-filtered.png`、`04c-ac-filter.png`、`14c-contest-knowledge.png`），配图合计 **35 张**；安装包 `dist\ACM-Trainer-1.20.0-setup.exe` **89.80MB**，`npm run verify:asar` 四项全 PASS（asar ↔ `out/` 6/6 一致）。
+测试 **552/552（50 文件）**、`verify:gui` **131/131**（新增 12 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增截图 4 张（`02-problems-knowledge.png`、`03-knowledge-filtered.png`、`04c-ac-filter.png`、`14c-contest-knowledge.png`）、删除 2 张旧命名截图，配图合计 **33 张**；`npm run docs:shots` 改为只覆盖脚本自己负责的 26 张、不再整目录删除（保留人工补拍的验收图）；安装包 `dist\ACM-Trainer-1.20.0-setup.exe` **89.80MB**，`npm run verify:asar` 四项全 PASS（asar ↔ `out/` 6/6 一致）。
 对应需求 **FR-41**（筛选维度收敛为「知识点」）+ **FR-42**（学习路径两个按钮与已 AC 过滤）（[docs/01-需求规格说明书.md](docs/01-需求规格说明书.md)）、设计 [docs/03-详细设计.md](docs/03-详细设计.md) §31。
 详见 [docs/08-发布说明.md](docs/08-发布说明.md) §26。使用说明见 [docs/09-使用手册.md](docs/09-使用手册.md) §27 / §28；发版流程见 [docs/11-发布操作手册.md](docs/11-发布操作手册.md)。
 
