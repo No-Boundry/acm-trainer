@@ -36,7 +36,14 @@ const NEEDLES = [
   'KnowledgePicker',
   'kn-title',
   'graph_conn',
-  '数位 DP'
+  '数位 DP',
+  // v1.21
+  'lists:archiveCatalog',
+  'lists:createArchive',
+  'skill:listCoverage',
+  'archiveCandidates',
+  '往届比赛题单',
+  '仅显示题单知识点'
 ]
 
 let failed = 0

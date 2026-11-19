@@ -435,6 +435,20 @@ export class ProblemsRepo {
     return ids.map((id) => byId.get(id)).filter((x): x is ProblemRow => x !== undefined)
   }
 
+  /**
+   * v1.21.0 FR-43：往届比赛题单候选（洛谷题名以 `[蓝桥杯 …]` / `[CCPC …]` 开头）。
+   * 用 GLOB 前缀匹配（`[[]` 匹配字面量 `[`），只取 id/name 两列供 shared 纯函数解析。
+   */
+  archiveCandidates(): { id: string; name: string }[] {
+    return this.db
+      .prepare(
+        `SELECT id, name FROM problems
+          WHERE name GLOB '[[]蓝桥杯 *' OR name GLOB '[[]CCPC *'
+          ORDER BY name, id`
+      )
+      .all() as { id: string; name: string }[]
+  }
+
   /** 全部标签（去重，按名称排序） */
   allTags(): string[] {
     const rows = this.db.prepare('SELECT name FROM tags ORDER BY name').all() as { name: string }[]

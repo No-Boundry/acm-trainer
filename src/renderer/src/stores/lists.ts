@@ -5,6 +5,7 @@ import type {
   CreatePlanInput,
   GenerateListInput,
   GenerateListResult,
+  ListKnowledgeCoverage,
   ParseIdsResult,
   ProblemList,
   ProblemListDetail,
@@ -14,6 +15,7 @@ import type {
   TrainingPlan,
   TrainingPlanDetail
 } from '@shared/types'
+import type { ArchiveKindCatalog, CreateArchiveListInput } from '@shared/contest-archive'
 
 interface ListsState {
   lists: ProblemList[]
@@ -99,6 +101,21 @@ export const useListsStore = defineStore('lists', {
       await this.loadLists()
       await this.openList(r.listId)
       return r
+    },
+    /** v1.21 FR-43：往届比赛目录（蓝桥杯 / CCPC，按年份 → 地区聚合） */
+    async loadArchiveCatalog(): Promise<ArchiveKindCatalog[]> {
+      return invoke<ArchiveKindCatalog[]>(IpcChannels.ListsArchiveCatalog)
+    },
+    /** v1.21 FR-43：按「比赛 + 年份 + 地区」生成往届比赛题单 */
+    async createArchive(input: CreateArchiveListInput): Promise<{ listId: number; picked: number }> {
+      const r = await invoke<{ listId: number; picked: number }>(IpcChannels.ListsCreateArchive, input)
+      await this.loadLists()
+      await this.openList(r.listId)
+      return r
+    },
+    /** v1.21 FR-44：题单覆盖的知识点（学习路径「仅显示题单知识点」） */
+    async knowledgeCoverage(listId: number): Promise<ListKnowledgeCoverage> {
+      return invoke<ListKnowledgeCoverage>(IpcChannels.SkillListCoverage, { listId })
     },
     async loadDue(): Promise<void> {
       const r = await invoke<{ today: string; items: ReviewEntry[] }>(IpcChannels.ListsDueReviews)

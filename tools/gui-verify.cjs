@@ -70,7 +70,15 @@ function seedAfterBoot() {
     // v1.9 力扣（index = titleSlug，难度 1 简单 / 2 中等 / 3 困难）
     ['LC1', 0, 'two-sum', '两数之和', null, 1, 'leetcode', ['数组', '哈希表']],
     ['LC146', 0, 'lru-cache', 'LRU 缓存', null, 2, 'leetcode', ['设计', '哈希表']],
-    ['LC23', 0, 'merge-k-sorted-lists', '合并 K 个升序链表', null, 3, 'leetcode', ['链表', '分治']]
+    ['LC23', 0, 'merge-k-sorted-lists', '合并 K 个升序链表', null, 3, 'leetcode', ['链表', '分治']],
+    // v1.21 FR-43：往届比赛题（题名含年份 + 地区/组别，供生成往届比赛题单）
+    // 只给蓝桥杯 2024 省 A 的两题挂「搜索」标签 → 题单覆盖 1 个知识点，便于验证 FR-44 过滤
+    // 难度都取 ≤3，避免扰动 4c-3「洛谷视图按难度」检查（该段要求难度 4 的 P3374 排最前）
+    ['P8801', 0, 'P8801', '[蓝桥杯 2024 省 A] 日期统计', null, 2, 'luogu', ['搜索']],
+    ['P8802', 0, 'P8802', '[蓝桥杯 2024 省 A] 幸运数', null, 2, 'luogu', ['搜索']],
+    ['P8803', 0, 'P8803', '[蓝桥杯 2025 国 A] 质数判定', null, 3, 'luogu', []],
+    ['P8811', 0, 'P8811', '[CCPC 2024 哈尔滨站] 图论签到', null, 3, 'luogu', []],
+    ['P8812', 0, 'P8812', '[CCPC 2024 哈尔滨站] 树上问题', null, 1, 'luogu', []]
   ]
   for (const [id, contestId, index, name, rating, difficulty, source, tags] of problems) {
     insertProblem.run(
@@ -513,7 +521,7 @@ async function main() {
   check('赛道必达节点有醒目标记', reqMarked > 0, `标记数=${reqMarked}`)
   // v1.10.1 回归：勾选「只显示赛道节点」后连线必须一起消失（原先残留悬空连线）
   const edgesBefore = await win.locator('.edges path').count()
-  const onlyTrack = win.locator('.only-track input')
+  const onlyTrack = win.locator('.track-panel:not(.list-panel) .only-track input')
   if ((await onlyTrack.count()) > 0) {
     await onlyTrack.check()
     await win.waitForTimeout(900)
@@ -691,6 +699,74 @@ async function main() {
   await win.locator('button', { hasText: '全部清空' }).first().click()
   await win.waitForTimeout(400)
 
+  // 4g-4) v1.21 FR-43：往届比赛题单（蓝桥杯 / CCPC，年份 + 地区手动联动）
+  await win.locator('.nav-item', { hasText: '题单/计划' }).click()
+  await win.waitForTimeout(1300)
+  await win.locator('button.archive-entry', { hasText: '往届比赛题单' }).click()
+  await win.waitForTimeout(1400)
+  const archiveModal = win.locator('.modal.wide', { hasText: '往届比赛题单' })
+  check('题单页出现「往届比赛题单」入口与弹窗', (await archiveModal.count()) > 0)
+  const archiveModalText = ((await archiveModal.innerText().catch(() => '')) || '').replace(/\s+/g, ' ')
+  check(
+    '弹窗可切换比赛并默认选中最近一届',
+    /蓝桥杯/.test(archiveModalText) && /CCPC/.test(archiveModalText) && /2025 年/.test(archiveModalText),
+    archiveModalText.slice(0, 180)
+  )
+  const archiveSelects = archiveModal.locator('select.select')
+  const yearOpts = await archiveSelects.first().locator('option').allInnerTexts()
+  const yearIdx = yearOpts.findIndex((t) => t.includes('2024'))
+  await archiveSelects.first().selectOption({ index: yearIdx })
+  await win.waitForTimeout(700)
+  const regionOpts = await archiveSelects.nth(1).locator('option').allInnerTexts()
+  check('换年份后地区下拉联动出「省 A」', regionOpts.some((t) => t.includes('省 A')), regionOpts.join(' / '))
+  const regionIdx = regionOpts.findIndex((t) => t.includes('省 A'))
+  await archiveSelects.nth(1).selectOption({ index: regionIdx })
+  await win.waitForTimeout(600)
+  const archivePreview = ((await archiveModal.innerText()) || '').replace(/\s+/g, ' ')
+  check(
+    '预览显示将创建「蓝桥杯 2024 · 省 A」共 2 题',
+    /蓝桥杯 2024 · 省 A/.test(archivePreview) && /共\s*2\s*题/.test(archivePreview),
+    archivePreview.slice(0, 200)
+  )
+  await win.screenshot({ path: path.join(OUT, '18-archive-list.png') })
+  await archiveModal.locator('.modal-actions button', { hasText: '生成题单' }).click()
+  await win.waitForTimeout(1800)
+  const archiveListItems = await win.locator('.list-item', { hasText: '蓝桥杯 2024 · 省 A' }).count()
+  check('生成往届比赛题单并出现在题单列表', archiveListItems > 0, `匹配 ${archiveListItems} 项`)
+  const archiveRows = await win.locator('table.table tbody tr').count()
+  check('往届比赛题单内是该届 2 道题', archiveRows === 2, `行数=${archiveRows}`)
+
+  // 4g-5) v1.21 FR-44：学习路径「仅显示题单知识点」
+  await win.locator('.nav-item', { hasText: '学习路径' }).click()
+  await win.waitForTimeout(1800)
+  const listPanel = win.locator('.list-panel')
+  check('学习路径出现「题单知识点」过滤面板', (await listPanel.count()) > 0)
+  const listSelect = listPanel.locator('select.list-select')
+  const listOpts = await listSelect.locator('option').allInnerTexts()
+  const listIdx = listOpts.findIndex((t) => t.includes('蓝桥杯 2024 · 省 A'))
+  check('题单下拉列出刚生成的往届比赛题单', listIdx > 0, listOpts.slice(0, 4).join(' / '))
+  await listSelect.selectOption({ index: listIdx })
+  await win.waitForTimeout(1400)
+  const coverageText = ((await listPanel.innerText()) || '').replace(/\s+/g, ' ')
+  check('面板显示题单覆盖的知识点数', /覆盖\s*\d+\s*个知识点/.test(coverageText), coverageText.slice(0, 160))
+  const cardsAll = await win.locator('.node-card').count()
+  const onlyListCb = listPanel.locator('.only-track input')
+  await onlyListCb.check()
+  await win.waitForTimeout(1000)
+  const cardsFiltered = await win.locator('.node-card:visible').count()
+  check(
+    '勾选后只显示题单覆盖的知识点',
+    cardsFiltered > 0 && cardsFiltered < cardsAll,
+    `可见 ${cardsFiltered} / 全部 ${cardsAll}`
+  )
+  await win.screenshot({ path: path.join(OUT, '11c-skill-tree-list.png') })
+  await onlyListCb.uncheck()
+  await win.waitForTimeout(900)
+  const cardsRestored = await win.locator('.node-card:visible').count()
+  check('取消勾选后恢复全部知识点', cardsRestored === cardsAll, `可见 ${cardsRestored} / 全部 ${cardsAll}`)
+  await listSelect.selectOption({ index: 0 })
+  await win.waitForTimeout(600)
+
   // 4f-3) 首页：已练习标签 + 推荐习题（v1.14 FR-31~FR-33）
   await win.locator('.nav-item', { hasText: '首页' }).click()
   await win.waitForTimeout(2000)
@@ -833,7 +909,7 @@ async function main() {
     const r = await window.api.invoke('problems:list', { page: 1, pageSize: 1, source: 'all' })
     return r && r.ok ? r.data.total : -1
   })
-  check('清空刷题记录不影响题库数据', totalAfter === 16, `题库 ${totalAfter} 题`)
+  check('清空刷题记录不影响题库数据', totalAfter === 21, `题库 ${totalAfter} 题`)
 
   // 4h) 题单 / 今日复习 / 训练计划（v1.10 FR-27~FR-29）
   await win.locator('.nav-item', { hasText: '题单/计划' }).click()

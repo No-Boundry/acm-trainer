@@ -37,6 +37,9 @@ export const IpcChannels = {
   ListsSetNote: 'lists:setNote',
   ListsParseText: 'lists:parseText',
   ListsGenerate: 'lists:generate',
+  // v1.21 FR-43：往届比赛题单（蓝桥杯 / CCPC，按年份 + 地区生成）
+  ListsArchiveCatalog: 'lists:archiveCatalog',
+  ListsCreateArchive: 'lists:createArchive',
   ListsReview: 'lists:review',
   ListsDueReviews: 'lists:dueReviews',
   PlansList: 'plans:list',
@@ -107,6 +110,8 @@ export const IpcChannels = {
 
   // 技能树（v1.6 FR-9）
   SkillGet: 'skill:get',
+  // v1.21 FR-44：题单覆盖的知识点（学习路径「仅显示题单知识点」）
+  SkillListCoverage: 'skill:listCoverage',
 
   // 首页推荐习题 + 已练习标签（v1.14 FR-31~FR-33）
   RecommendGet: 'recommend:get',

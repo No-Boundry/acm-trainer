@@ -453,7 +453,8 @@ export const JUDGE_STATUS_LABELS: Record<JudgeStatus, string> = {
 
 // ============ v1.10 题单 / 训练计划 / 间隔复习（FR-27~FR-29） ============
 
-export type ListOrigin = 'manual' | 'paste' | 'generate'
+/** 题单来源（v1.21 FR-43 增加 archive = 往届比赛题单） */
+export type ListOrigin = 'manual' | 'paste' | 'generate' | 'archive'
 
 export type ReviewEase = 'hard' | 'ok' | 'easy'
 
@@ -506,6 +507,21 @@ export interface ProblemListDetailItem extends ProblemListItem {
 export interface ProblemListDetail {
   list: ProblemList
   items: ProblemListDetailItem[]
+}
+
+/**
+ * v1.21.0 FR-44：一份题单覆盖的知识点（学习路径「仅显示题单知识点」用）。
+ * 由题单内题目的标签并集映射回技能树节点，只用于界面过滤，不落库。
+ */
+export interface ListKnowledgeCoverage {
+  listId: number
+  listName: string
+  /** 题单条目数（本地题库缺失的题也计入条目数） */
+  problemCount: number
+  /** 命中节点 id（按技能树声明顺序） */
+  nodeIds: string[]
+  /** 命中的题库标签（tag-map 归一后去重，按字典序） */
+  tags: string[]
 }
 
 /** 今日待复习条目（跨题单汇总） */

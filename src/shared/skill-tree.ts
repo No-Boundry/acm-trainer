@@ -13,6 +13,8 @@
  * （题单/训练计划里已保存的 knowledge_ids 不会失效）。
  */
 
+import { canonicalTags } from './tag-map'
+
 export interface SkillNode {
   id: string
   name: string
@@ -360,4 +362,20 @@ export function nodesByLayer(): { layer: number; name: string; nodes: SkillNode[
     name,
     nodes: SKILL_NODES.filter((n) => n.layer === layer)
   }))
+}
+
+/**
+ * v1.21.0 FR-44：给定一组题库标签，返回命中的知识点节点 id（按图谱声明顺序）。
+ *
+ * 语义：节点只要有「任一关联标签」命中标签集合即算覆盖（并集，与题库知识点筛选一致）；
+ * 标签先经 tag-map 归一（中英文别名/大小写），避免题目标签是 `greedy`、节点写 `贪心` 时漏匹配。
+ * 学习路径的「仅显示题单知识点」就用它把题单里的题映射回知识点。
+ */
+export function coveredNodeIds(tags: Iterable<string>): string[] {
+  const wanted = new Set(canonicalTags([...tags]))
+  if (wanted.size === 0) return []
+  return SKILL_NODES.filter((n) => {
+    const nodeTags = canonicalTags(n.tags)
+    return nodeTags.some((t) => wanted.has(t))
+  }).map((n) => n.id)
 }

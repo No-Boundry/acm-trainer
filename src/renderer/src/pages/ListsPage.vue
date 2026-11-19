@@ -7,6 +7,13 @@ import { useStatementStore } from '@/stores/statement'
 import { LUOGU_DIFFICULTY_LABELS, LEETCODE_DIFFICULTY_LABELS, REVIEW_EASE_LABELS } from '@shared/types'
 import type { ReviewEase, ProblemRow } from '@shared/types'
 import { SKILL_TRACKS, SKILL_TRACK_MAP } from '@shared/skill-tracks'
+import {
+  ARCHIVE_KINDS,
+  ARCHIVE_KIND_MAP,
+  archiveListName,
+  type ArchiveKind,
+  type ArchiveKindCatalog
+} from '@shared/contest-archive'
 
 /**
  * 题单 / 今日复习 / 训练计划（v1.10 FR-27~FR-29）。
@@ -178,6 +185,101 @@ async function doGenerate(): Promise<void> {
     })
     genOpen.value = false
     toast.success(`已生成题单：抽取 ${r.picked} 题（候选 ${r.candidates} 题）`)
+  } catch (e) {
+    toast.error(err(e))
+  }
+}
+
+// 往届比赛题单（v1.21 FR-43）
+const archiveOpen = ref(false)
+const archiveCatalog = ref<ArchiveKindCatalog[] | null>(null)
+const archiveForm = ref({
+  kind: 'lanqiao' as ArchiveKind,
+  year: 0,
+  region: '',
+  name: ''
+})
+
+const archiveKindMeta = computed(() => ARCHIVE_KIND_MAP.get(archiveForm.value.kind))
+const archiveYears = computed(
+  () => archiveCatalog.value?.find((c) => c.kind === archiveForm.value.kind)?.years ?? []
+)
+const archiveYearOption = computed(
+  () => archiveYears.value.find((y) => y.year === archiveForm.value.year) ?? null
+)
+const archiveRegions = computed(() => archiveYearOption.value?.regions ?? [])
+const archiveAutoName = computed(() =>
+  archiveForm.value.year
+    ? archiveListName({
+        kind: archiveForm.value.kind,
+        year: archiveForm.value.year,
+        region: archiveForm.value.region || null
+      })
+    : ''
+)
+const archivePreviewCount = computed(() => {
+  const y = archiveYearOption.value
+  if (!y) return 0
+  if (!archiveForm.value.region) return y.count
+  return y.regions.find((r) => r.region === archiveForm.value.region)?.count ?? 0
+})
+
+/** 打开弹窗时拉取目录（本地题库可能还没同步洛谷 → 展示引导文案） */
+async function openArchive(): Promise<void> {
+  archiveOpen.value = true
+  if (archiveCatalog.value) return
+  try {
+    archiveCatalog.value = await lists.loadArchiveCatalog()
+    resetArchiveSelection()
+  } catch (e) {
+    toast.error(err(e))
+  }
+}
+
+function resetArchiveSelection(): void {
+  const cat = archiveCatalog.value
+  if (!cat) return
+  const kind = ARCHIVE_KINDS.find((k) => (cat.find((c) => c.kind === k.id)?.years.length ?? 0) > 0)?.id ?? 'lanqiao'
+  archiveForm.value = { kind, year: 0, region: '', name: '' }
+  pickDefaultYear(kind)
+}
+
+function pickDefaultYear(kind: ArchiveKind): void {
+  const years = archiveCatalog.value?.find((c) => c.kind === kind)?.years ?? []
+  archiveForm.value.year = years[0]?.year ?? 0
+}
+
+/** 切换比赛：年份与地区都重置为新比赛的最新一届 */
+function pickArchiveKind(kind: ArchiveKind): void {
+  if (archiveForm.value.kind === kind) return
+  archiveForm.value.kind = kind
+  archiveForm.value.region = ''
+  pickDefaultYear(kind)
+}
+
+/** 年份变化 → 地区联动：新年份没有当前地区时回到「全部」 */
+function onArchiveYearChange(): void {
+  if (archiveForm.value.region && !archiveRegions.value.some((r) => r.region === archiveForm.value.region)) {
+    archiveForm.value.region = ''
+  }
+}
+
+async function doCreateArchive(): Promise<void> {
+  const f = archiveForm.value
+  if (!f.year) {
+    toast.error('该比赛暂无可用年份（请先同步洛谷题库）')
+    return
+  }
+  try {
+    const r = await lists.createArchive({
+      kind: f.kind,
+      year: f.year,
+      region: f.region || null,
+      name: f.name.trim() || undefined
+    })
+    archiveOpen.value = false
+    archiveForm.value.name = ''
+    toast.success(`已生成往届比赛题单：${r.picked} 题`)
   } catch (e) {
     toast.error(err(e))
   }
@@ -362,6 +464,8 @@ onMounted(async () => {
           <input v-model="newListName" class="input" placeholder="新建题单名称…" @keyup.enter="createList()" />
           <button class="btn primary" @click="createList()">新建</button>
         </div>
+        <button class="btn archive-entry" @click="openArchive()">🏁 往届比赛题单</button>
+        <p class="dim small archive-hint">从本地洛谷题库一键生成蓝桥杯 / CCPC 往届真题</p>
         <ul class="list-items">
           <li
             v-for="l in lists.lists"
@@ -375,10 +479,11 @@ onMounted(async () => {
               {{ l.doneCount }}/{{ l.total }} 完成
               <span v-if="l.reviewCount"> · 复习 {{ l.reviewCount }}</span>
               <span v-if="l.dueCount" class="due"> · 待复习 {{ l.dueCount }}</span>
+              <span v-if="l.origin === 'archive'"> · 🏁 往届比赛</span>
               <span v-if="l.trackId"> · {{ SKILL_TRACK_MAP.get(l.trackId)?.name }}</span>
             </div>
           </li>
-          <li v-if="lists.lists.length === 0" class="dim small">还没有题单：右侧「粘贴识别」或「按知识点生成」都可以快速建一份。</li>
+          <li v-if="lists.lists.length === 0" class="dim small">还没有题单：可点上方「🏁 往届比赛题单」一键建一份，或到右侧「粘贴识别」「按知识点生成」。</li>
         </ul>
       </div>
 
@@ -659,6 +764,76 @@ onMounted(async () => {
       </div>
     </div>
 
+    <!-- ============ 弹窗：往届比赛题单（v1.21 FR-43） ============ -->
+    <div v-if="archiveOpen" class="modal-mask" @click.self="archiveOpen = false">
+      <div class="modal wide">
+        <h3>🏁 往届比赛题单</h3>
+        <p class="dim small">
+          从本地洛谷题库的题名解析「年份 + 地区/组别」（如 `[蓝桥杯 2024 省 A]`、`[CCPC 2024 哈尔滨站]`），
+          一键生成整套往届比赛题单。需要先同步洛谷题库。
+        </p>
+        <div v-if="!archiveCatalog" class="dim">加载往届比赛目录中…</div>
+        <template v-else-if="archiveYears.length > 0">
+          <div class="form-grid">
+            <div class="fld">
+              <span class="dim small">比赛</span>
+              <div class="seg-row">
+                <button
+                  v-for="k in ARCHIVE_KINDS"
+                  :key="k.id"
+                  class="seg"
+                  :class="{ on: archiveForm.kind === k.id }"
+                  @click="pickArchiveKind(k.id)"
+                >
+                  {{ k.label }}
+                </button>
+              </div>
+            </div>
+            <label class="fld">
+              <span class="dim small">年份（手动选择）</span>
+              <select v-model.number="archiveForm.year" class="select" @change="onArchiveYearChange">
+                <option v-for="y in archiveYears" :key="y.year" :value="y.year">
+                  {{ y.year }} 年（{{ y.count }} 题）
+                </option>
+              </select>
+            </label>
+            <label class="fld">
+              <span class="dim small">{{ archiveKindMeta?.regionLabel ?? '地区 / 组别' }}（随年份联动）</span>
+              <select v-model="archiveForm.region" class="select">
+                <option value="">{{ archiveKindMeta?.allRegionLabel ?? '全部地区' }}（{{ archiveYearOption?.count ?? 0 }} 题）</option>
+                <option v-for="r in archiveRegions" :key="r.region" :value="r.region">
+                  {{ r.region }}（{{ r.count }} 题）
+                </option>
+              </select>
+            </label>
+            <label class="fld">
+              <span class="dim small">题单名称（留空自动命名）</span>
+              <input v-model="archiveForm.name" class="input" :placeholder="archiveAutoName" />
+            </label>
+          </div>
+          <p class="small">
+            将创建：<b>{{ archiveAutoName }}</b> · 共 <b>{{ archivePreviewCount }}</b> 题
+            <span class="dim">（{{ archiveKindMeta?.label }} {{ archiveForm.year }} · {{ archiveForm.region || archiveKindMeta?.allRegionLabel }}）</span>
+          </p>
+          <div class="modal-actions">
+            <button class="btn primary" :disabled="archivePreviewCount === 0" @click="doCreateArchive()">
+              生成题单（{{ archivePreviewCount }} 题）
+            </button>
+            <button class="btn ghost" @click="archiveOpen = false">取消</button>
+          </div>
+        </template>
+        <template v-else>
+          <p class="dim">
+            本地题库还没有{{ archiveKindMeta?.label ?? '该比赛' }}的往届比赛题：
+            请先到「设置 → 题库同步」同步洛谷题库后再试。
+          </p>
+          <div class="modal-actions">
+            <button class="btn ghost" @click="archiveOpen = false">关闭</button>
+          </div>
+        </template>
+      </div>
+    </div>
+
     <!-- ============ 弹窗：粘贴识别 ============ -->
     <div v-if="pasteOpen" class="modal-mask" @click.self="pasteOpen = false">
       <div class="modal">
@@ -786,6 +961,10 @@ onMounted(async () => {
   border-color: var(--primary);
   color: #fff;
 }
+.seg-row {
+  display: flex;
+  gap: 6px;
+}
 .badge-due {
   display: inline-block;
   margin-left: 6px;
@@ -869,6 +1048,15 @@ onMounted(async () => {
   align-items: center;
   flex-wrap: wrap;
   margin: 8px 0 12px;
+}
+.archive-entry {
+  width: 100%;
+  justify-content: center;
+  margin-top: 10px;
+}
+.archive-hint {
+  margin: 6px 0 10px;
+  line-height: 1.5;
 }
 .table {
   width: 100%;

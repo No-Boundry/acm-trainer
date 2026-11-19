@@ -15,6 +15,15 @@ import { AppError } from '../db/errors'
 import { nextReview } from '../services/review'
 import { parseCandidatesFromText, pickProblemsForList, resolveCandidates } from '../services/problem-list'
 import { SKILL_NODE_MAP } from '@shared/skill-tree'
+import {
+  ARCHIVE_KIND_MAP,
+  archiveListDescription,
+  archiveListName,
+  buildArchiveCatalog,
+  filterArchiveProblems,
+  type ArchiveKindCatalog,
+  type CreateArchiveListInput
+} from '@shared/contest-archive'
 import { handle } from './helpers'
 
 /** v1.10：题单 + 题单内间隔复习（FR-27 / FR-29） */
@@ -118,4 +127,47 @@ export function registerListsIpc(repos: Repos): void {
     today: new Date().toISOString().slice(0, 10),
     items: repos.lists.dueReviews(repos.problems)
   }))
+
+  /** v1.21 FR-43：往届比赛目录（蓝桥杯 / CCPC，按年份 → 地区聚合题数） */
+  handle<unknown, ArchiveKindCatalog[]>(IpcChannels.ListsArchiveCatalog, () =>
+    buildArchiveCatalog(repos.problems.archiveCandidates())
+  )
+
+  /** v1.21 FR-43：按「比赛 + 年份 + 地区」生成往届比赛题单（地区留空 = 该年全部地区） */
+  handle<CreateArchiveListInput, { listId: number; picked: number }>(
+    IpcChannels.ListsCreateArchive,
+    (req) => {
+      const kind = req?.kind
+      if (kind !== 'lanqiao' && kind !== 'ccpc') {
+        throw new AppError('VALIDATION', '比赛类型只能是 lanqiao / ccpc')
+      }
+      const year = Number(req.year)
+      const region = req.region?.trim() || null
+      const candidates = repos.problems.archiveCandidates()
+      const catalog = buildArchiveCatalog(candidates)
+      const yearCat = catalog
+        .find((c) => c.kind === kind)
+        ?.years.find((y) => y.year === year)
+      if (!yearCat) {
+        throw new AppError('NOT_FOUND', '本地题库中没有该年份的往届比赛题（可先同步洛谷题库）')
+      }
+      if (region && !yearCat.regions.some((r) => r.region === region)) {
+        throw new AppError('NOT_FOUND', `本地题库中没有「${region}」的该届题目`)
+      }
+      const ids = filterArchiveProblems(candidates, { kind, year, region })
+      if (ids.length === 0) {
+        throw new AppError('VALIDATION', '该届比赛没有可加入的题目')
+      }
+      const meta = ARCHIVE_KIND_MAP.get(kind)
+      const list = repos.lists.create({
+        name: req.name?.trim() || archiveListName({ kind, year, region }),
+        description: archiveListDescription({ kind, year, region }, ids.length),
+        origin: 'archive',
+        trackId: meta?.trackId ?? null
+      })
+      repos.lists.addProblems(list.id, ids)
+      const created = repos.lists.getById(list.id)
+      return { listId: list.id, picked: created?.total ?? ids.length }
+    }
+  )
 }

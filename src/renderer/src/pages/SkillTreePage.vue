@@ -5,11 +5,12 @@ import { invoke } from '@/api/ipc'
 import { useToast } from '@/composables/useToast'
 import { useStatementStore } from '@/stores/statement'
 import { useProblemsStore } from '@/stores/problems'
+import { useListsStore } from '@/stores/lists'
 import { IpcChannels } from '@shared/channels'
 import { LAYER_NAMES } from '@shared/skill-tree'
 import { SKILL_TRACKS, SKILL_TRACK_MAP, type TrackProgress } from '@shared/skill-tracks'
 import { MASTERY_TIER_META, MASTERY_TIER_ORDER } from '@shared/types'
-import type { MasteryTier, SkillNodeReport, SkillReport, TagUsage } from '@shared/types'
+import type { ListKnowledgeCoverage, MasteryTier, SkillNodeReport, SkillReport, TagUsage } from '@shared/types'
 
 /** v1.10 FR-26：赛道进度随 skill:get 一起下发 */
 interface ReportWithTracks extends SkillReport {
@@ -18,6 +19,7 @@ interface ReportWithTracks extends SkillReport {
 
 const statement = useStatementStore()
 const problemsStore = useProblemsStore()
+const listsStore = useListsStore()
 const router = useRouter()
 const toast = useToast()
 
@@ -127,10 +129,17 @@ function orderLayersByDeps(nodes: SkillNodeReport[]): SkillNodeReport[][] {
 const layers = computed(() => {
   if (!report.value) return []
   const byLayer = orderLayersByDeps(report.value.nodes)
-  const out: { layer: number; name: string; nodes: SkillNodeReport[] }[] = []
+  const out: { layer: number; name: string; nodes: SkillNodeReport[]; visibleCount: number }[] = []
   for (let l = maxLayer.value; l >= 0; l--) {
     const nodes = byLayer[l] ?? []
-    if (nodes.length > 0) out.push({ layer: l, name: LAYER_NAMES[l] ?? `L${l}`, nodes })
+    if (nodes.length > 0) {
+      out.push({
+        layer: l,
+        name: LAYER_NAMES[l] ?? `L${l}`,
+        nodes,
+        visibleCount: nodes.filter((n) => isNodeVisible(n.id)).length
+      })
+    }
   }
   return out
 })
@@ -280,8 +289,10 @@ function measureEdges(): void {
 
 /** v1.10.1：节点是否可见（赛道过滤生效且该节点不在赛道内时隐藏） */
 function isNodeVisible(id: string): boolean {
-  if (!(onlyTrackNodes.value && activeTrackId.value)) return true
-  return isInTrack(id)
+  if (onlyTrackNodes.value && activeTrackId.value && !isInTrack(id)) return false
+  // v1.21 FR-44：勾选「仅显示题单知识点」后，只保留题单覆盖的节点
+  if (onlyListNodes.value && activeListId.value && !coveredSet.value.has(id)) return false
+  return true
 }
 
 /**
@@ -329,6 +340,15 @@ const activeTrackProgress = computed(() => {
 })
 /** 赛道模式下：非赛道节点压暗（可选开关） */
 const onlyTrackNodes = ref(false)
+
+// ---------- v1.21 FR-44：只看某份题单覆盖的知识点 ----------
+const activeListId = ref<number>(0)
+const onlyListNodes = ref(false)
+const listCoverage = ref<ListKnowledgeCoverage | null>(null)
+const listCoverageLoading = ref(false)
+const listOptions = computed(() => listsStore.lists)
+/** 题单覆盖的知识点 id 集合（由 skill:listCoverage 下发） */
+const coveredSet = computed(() => new Set(listCoverage.value?.nodeIds ?? []))
 
 function isInTrack(id: string): boolean {
   if (!activeTrackId.value) return true
@@ -401,11 +421,39 @@ watch([activeTrackId, onlyTrackNodes], async () => {
   measureEdges()
 })
 
+/** 拉取题单覆盖的知识点（v1.21 FR-44） */
+async function loadCoverage(): Promise<void> {
+  if (!activeListId.value) {
+    listCoverage.value = null
+    return
+  }
+  listCoverageLoading.value = true
+  try {
+    listCoverage.value = await listsStore.knowledgeCoverage(activeListId.value)
+  } catch {
+    listCoverage.value = null
+  } finally {
+    listCoverageLoading.value = false
+  }
+}
+
+// 切换题单 / 勾选「仅显示题单知识点」→ 重新统计覆盖 + 重测连线
+watch([activeListId, onlyListNodes], async () => {
+  if (!activeListId.value) onlyListNodes.value = false
+  if (activeListId.value) await loadCoverage()
+  else listCoverage.value = null
+  await nextTick()
+  await nextTick()
+  measureEdges()
+})
+
 onMounted(() => {
   onResize = () => measureEdges()
   window.addEventListener('resize', onResize)
   void load()
   void loadTagUsage()
+  // 题单知识点面板是辅助功能：题单列表拉取失败（如旧测试桩没有 lists:list）不应抛未处理拒绝
+  void listsStore.loadLists().catch(() => undefined)
   // 字体加载完成后布局可能微移，重测一次连线
   const fonts = (document as Document & { fonts?: { ready?: Promise<unknown> } }).fonts
   if (fonts?.ready?.then) void fonts.ready.then(() => measureEdges())
@@ -491,6 +539,29 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
+    <!-- v1.21 FR-44：按题单只看它覆盖的知识点 -->
+    <div class="track-panel list-panel">
+      <div class="track-row">
+        <span class="dim small">题单知识点：</span>
+        <select v-model.number="activeListId" class="list-select">
+          <option :value="0">（不按题单过滤）</option>
+          <option v-for="l in listOptions" :key="l.id" :value="l.id">{{ l.name }}（{{ l.total }} 题）</option>
+        </select>
+        <label class="only-track">
+          <input v-model="onlyListNodes" type="checkbox" :disabled="!activeListId" />
+          <span class="dim small">仅显示题单知识点</span>
+        </label>
+        <span v-if="listCoverage" class="dim small">
+          「{{ listCoverage.listName }}」共 {{ listCoverage.problemCount }} 题，覆盖
+          <b>{{ listCoverage.nodeIds.length }}</b> 个知识点
+        </span>
+        <span v-else-if="listCoverageLoading" class="dim small">统计题单覆盖的知识点…</span>
+        <span v-else-if="listOptions.length === 0" class="dim small">
+          还没有题单：可到「题单/计划」新建，或用「🏁 往届比赛题单」一键生成
+        </span>
+      </div>
+    </div>
+
     <div v-if="loading" class="empty">统计中…</div>
     <template v-else-if="report">
       <div ref="rootRef" class="tree">
@@ -503,15 +574,15 @@ onBeforeUnmount(() => {
           />
         </svg>
 
-        <div v-for="layer in layers" :key="layer.layer" class="layer">
+        <div v-for="layer in layers" v-show="layer.visibleCount > 0" :key="layer.layer" class="layer">
           <div class="layer-head">
             <span class="layer-name">L{{ layer.layer }} · {{ layer.name }}</span>
-            <span class="layer-count dim">（{{ layer.nodes.length }} 个知识点）</span>
+            <span class="layer-count dim">（{{ layer.visibleCount }} 个知识点）</span>
           </div>
           <div class="layer-nodes">
             <button
               v-for="n in layer.nodes"
-              v-show="!(onlyTrackNodes && activeTrackId) || isInTrack(n.id)"
+              v-show="isNodeVisible(n.id)"
               :key="n.id"
               class="node-card"
               :data-node="n.id"
@@ -736,6 +807,19 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 4px;
   margin-left: 8px;
+}
+/* v1.21 FR-44：题单知识点过滤 */
+.list-panel {
+  margin-top: -4px;
+}
+.list-select {
+  max-width: 280px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-side);
+  color: var(--text);
+  font-size: 12px;
 }
 .track-detail {
   margin-top: 10px;
