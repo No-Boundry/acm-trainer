@@ -12,6 +12,28 @@ import { canonicalTags } from '@shared/tag-map'
 
 /** 五档掌握度（docs/03 §12.2；阈值可调） */
 export function classifyTier(s: NodePracticeStats): MasteryTier {
+  const base = aggregateTier(s)
+  // v1.21.1 广度门槛（FR-45）：节点把多个标签的知识点并在一起，只刷其中一个标签
+  // 不足以判定整个知识点掌握。分母只用「本地题库里有题」的标签（tagTotal），
+  // 避免把永远练不到的标签算进来；总标签数 ≤1 时不做广度约束（单标签节点保持原口径）。
+  const total = s.tagTotal
+  if (total <= 1) return base
+  const covered = s.coveredTags
+  const needProficient = Math.ceil(total * 0.6)
+  const needMaster = Math.ceil(total * 0.8)
+  const breadthCap: MasteryTier =
+    covered >= needMaster
+      ? 'master'
+      : covered >= needProficient
+        ? 'proficient'
+        : covered >= 1
+          ? 'learning'
+          : 'newbie'
+  return MASTERY_RANK[base] <= MASTERY_RANK[breadthCap] ? base : breadthCap
+}
+
+/** 聚合阈值：只看题数 / 正确率 / 难题，不看广度（v1.21.1 抽出，便于单测） */
+export function aggregateTier(s: NodePracticeStats): MasteryTier {
   if (s.attempted === 0) return 'untouched'
   if (s.acProblems < 3) return 'newbie'
   const acc = s.acc ?? 0
@@ -21,6 +43,14 @@ export function classifyTier(s: NodePracticeStats): MasteryTier {
     return 'master'
   }
   return 'proficient'
+}
+
+const MASTERY_RANK: Record<MasteryTier, number> = {
+  untouched: 0,
+  newbie: 1,
+  learning: 2,
+  proficient: 3,
+  master: 4
 }
 
 /** 依赖满足判定：全部前置 tier ≥ proficient */
@@ -40,7 +70,17 @@ interface ProblemMeta {
 }
 
 function emptyStats(): NodePracticeStats {
-  return { attempted: 0, acProblems: 0, attempts: 0, acAttempts: 0, acc: null, hardSolved: 0, lastActiveDays: null }
+  return {
+    attempted: 0,
+    acProblems: 0,
+    attempts: 0,
+    acAttempts: 0,
+    acc: null,
+    hardSolved: 0,
+    lastActiveDays: null,
+    tagTotal: 0,
+    coveredTags: 0
+  }
 }
 
 /** 聚合单个节点的统计（记录级） */
@@ -106,16 +146,30 @@ export function buildSkillReport(repos: Repos): SkillReport {
   // 库里标签已物化为中文 canonical），否则英文节点标签会匹配不到中文题标签。
   const nodeRecords = new Map<string, { status: ResultStatus; createdAt: string; problemId: string }[]>()
   const nodeTagSet = new Map<string, Set<string>>()
+  // v1.21.1：节点内「每个标签各自 AC 过的题」——掌握广度（覆盖率）的分子
+  const nodeTagAc = new Map<string, Map<string, Set<string>>>()
+  // v1.21.1：本地题库里有题的标签集合——广度分母只算「练得到」的标签
+  const availableTags = new Set(repos.problems.tagTotals().keys())
   for (const n of SKILL_NODES) {
     nodeRecords.set(n.id, [])
     nodeTagSet.set(n.id, new Set(canonicalTags(n.tags).map((t) => t.toLowerCase())))
+    nodeTagAc.set(n.id, new Map())
   }
   for (const r of records) {
     const lowerTags = canonicalTags(metaOf(r.problemId).tags).map((t) => t.toLowerCase())
     if (lowerTags.length === 0) continue
     for (const n of SKILL_NODES) {
-      if (lowerTags.some((t) => nodeTagSet.get(n.id)!.has(t))) {
-        nodeRecords.get(n.id)!.push({ status: r.status, createdAt: r.createdAt, problemId: r.problemId })
+      const nodeTags = nodeTagSet.get(n.id)!
+      const hitTags = lowerTags.filter((t) => nodeTags.has(t))
+      if (hitTags.length === 0) continue
+      nodeRecords.get(n.id)!.push({ status: r.status, createdAt: r.createdAt, problemId: r.problemId })
+      if (r.status === 'AC') {
+        const acMap = nodeTagAc.get(n.id)!
+        for (const t of hitTags) {
+          const set = acMap.get(t) ?? new Set<string>()
+          set.add(r.problemId)
+          acMap.set(t, set)
+        }
       }
     }
   }
@@ -123,7 +177,13 @@ export function buildSkillReport(repos: Repos): SkillReport {
   // 全节点统计
   const statsById = new Map<string, NodePracticeStats>()
   for (const n of SKILL_NODES) {
-    statsById.set(n.id, aggregateNode(nodeRecords.get(n.id)!, metaOf))
+    const stats = aggregateNode(nodeRecords.get(n.id)!, metaOf)
+    // v1.21.1 广度：分母 = 节点标签 ∩ 本地题库有题；分子 = 其中已有 AC 的标签数
+    const availableNodeTags = [...nodeTagSet.get(n.id)!].filter((t) => availableTags.has(t))
+    const acMap = nodeTagAc.get(n.id)!
+    stats.tagTotal = availableNodeTags.length
+    stats.coveredTags = availableNodeTags.filter((t) => acMap.has(t)).length
+    statsById.set(n.id, stats)
   }
 
   const tierOf = (id: string): MasteryTier => classifyTier(statsById.get(id) ?? emptyStats())

@@ -650,6 +650,10 @@ onBeforeUnmount(() => {
         <div class="stat"><b>{{ pct(selectedNode.stats.acc) }}</b><span>正确率</span></div>
         <div class="stat"><b>{{ selectedNode.stats.hardSolved }}</b><span>难题</span></div>
         <div class="stat"><b>{{ selectedNode.stats.lastActiveDays == null ? '—' : `${selectedNode.stats.lastActiveDays}天前` }}</b><span>最近练习</span></div>
+        <!-- v1.21.1：掌握度广度门槛（FR-45）——节点内的标签覆盖数，档位与题数阈值取较弱者 -->
+        <div class="stat" title="节点内已有至少 1 道 AC 的标签数 / 本地题库可练标签数。掌握度广度门槛：基本掌握需覆盖 60%、熟练需覆盖 80%">
+          <b>{{ selectedNode.stats.tagTotal > 0 ? `${selectedNode.stats.coveredTags}/${selectedNode.stats.tagTotal}` : '—' }}</b><span>标签覆盖</span>
+        </div>
       </div>
 
       <div class="meta-block">
@@ -1093,7 +1097,7 @@ onBeforeUnmount(() => {
 }
 .stats {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 6px;
 }
 .stat {

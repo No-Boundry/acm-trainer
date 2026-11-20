@@ -1,19 +1,19 @@
 # ACM-Trainer（ACM 训练助手）
 
-[![version](https://img.shields.io/badge/version-1.21.0-blue)](https://github.com/No-Boundry/acm-trainer/releases)
-[![tests](https://img.shields.io/badge/tests-582%20passed-brightgreen)](docs/04-测试规范.md)
+[![version](https://img.shields.io/badge/version-1.21.1-blue)](https://github.com/No-Boundry/acm-trainer/releases)
+[![tests](https://img.shields.io/badge/tests-591%20passed-brightgreen)](docs/04-测试规范.md)
 [![gui](https://img.shields.io/badge/verify%3Agui-142%2F142-brightgreen)](docs/04-测试规范.md)
 [![license](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![platform](https://img.shields.io/badge/platform-Windows%2010%2F11-lightgrey)](#快速开始)
 
-面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.21.0**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
+面向个人 ACM/ICPC 学习与训练的**本地桌面应用**（Electron 37 + Vue 3 + TypeScript + SQLite）。当前版本 **v1.21.1**，规格驱动开发（SDD），规格文档见 [docs/](docs/)。
 
 - 📚 **题库**：Codeforces（11,526 题）、洛谷 P 题（16,754 题）与**力扣算法题（3,976 道）三数据源**（合计 32,256 题），按难度/知识点/状态/关键字筛选（**v1.20 起筛选项只有「知识点」一个维度，原来的 6 个标签大类已并入知识点**），**排序规则**（按难度按各题源自己的难度列、按题号数字序、空难度恒排最后、全部视图按题源分组）
 - 🧠 **知识点筛选（v1.20：唯一筛选维度）**：**70 个知识点**按 L0–L6 分层展示，带掌握度色点与「已练/已 AC」题数，多选并集筛题（已接入力扣中文标签）；原先只在筛选界面裸露的概念类标签（`搜索` / `递推` / `树链剖分` / `数位 DP` / `莫队` / `cdq 分治` 等 **32 个**）已并入 **22 个知识点**，赛事 / 来源 / 年份类标签（`ICPC`、`洛谷原创`、各省省选、年份…）不再出现在筛选界面（题目行仍展示来源）；**标签已中英统一（v1.18）**：同一概念的英文标签（`greedy` / `dsu`）在入库时即归并为中文（`贪心` / `并查集`），搜 `greedy` 与搜 `贪心` 等价
 - 🎯 **首页推荐习题（v1.14；v1.16 起与题库页共用题源筛选）**：固定「**已练习**」「**未练习**」两栏（默认各 8 条）—— 已练习默认按**遗忘曲线**排序（越久没碰、AC 越少越靠前，紧急度 ≥ 0.5 标「该复习了」），未练习默认**优先「练习中」知识点、组内 AC 数升序**；两栏都支持知识点/标签筛选，点条目直达题库（`?q=<题号>`），条数与排序在设置页「首页推荐习题」面板可调（1–30，改完立刻生效）；**推荐区上方多一行题源切换（全部 / Codeforces / 洛谷 / 力扣），与题库页是同一个状态，在哪边切另一边都跟着变**
 - 🏷️ **已练习标签（v1.14）**：每个练过的知识点标签直接显示 **`已AC数/题数`**（如 `贪心 9/9`），未 AC 的标签另列计数，**点 chip 即筛选推荐**；技能树标签按钮同样显示题库题数与 ✅ 已 AC 数，题库无题的标签画虚线
 - 🕘 **刷题记录（v1.19）**：首页按**打开题面的时间倒序**列出你打开过的题（题号/题名/难度/时间），同一道题只占一行、多次打开显示「打开 N 次」；点条目重新打开题面，「清空记录」不影响题库与练习记录；已纳入备份 / 恢复
-- 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**v1.20 起节点详情新增「✓ 确定全选 / ✕ 取消全选」与「⊘ 排除已 AC / ✓ 只看已 AC」三态过滤**（跳题库时把 `ac` 条件带过去，补题 / 复习不用再手动重勾）；**v1.21 起可选题单，只显示该题单覆盖到的知识点**（空层与多余连线自动隐藏，纯显示不改统计数据）；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
+- 🗺️ **学习路径（技能树）**：内置知识图谱（依赖连线、五档掌握度、推荐下一步），一键跳题库练习（**支持单个知识点直达**：卡片「📚」快捷按钮或详情面板按钮）；**v1.14 起关联标签可手动勾选**，只把自己挑的标签带去题库；**v1.20 起节点详情新增「✓ 确定全选 / ✕ 取消全选」与「⊘ 排除已 AC / ✓ 只看已 AC」三态过滤**（跳题库时把 `ac` 条件带过去，补题 / 复习不用再手动重勾）；**v1.21 起可选题单，只显示该题单覆盖到的知识点**（空层与多余连线自动隐藏，纯显示不改统计数据）；**v1.21.1 起多标签节点按「标签覆盖」加广度门槛**（练出 AC 的标签覆盖不到 60% / 80% 不再判基本掌握 / 熟练）；**5 个国内比赛赛道**（蓝桥杯 / 天梯赛 GPLT / ICPC·CCPC / NOIP·CSP-S / 牛客多校）—— 赛制说明、推荐难度、**必达进度条**、「按赛道去题库练习」
 - 🏁 **往届比赛题单（v1.21）**：题单页左侧面板顶部常驻「🏁 往届比赛题单」按钮，弹窗里手动选**比赛（蓝桥杯 / CCPC）→ 年份（默认最近一届、选项带题数）→ 地区 / 组别**（随年份联动，旧地区自动回落「全部」），用本地题库一键建出这一届的题单（蓝桥杯 704 题 / 163 组、CCPC 63 题 / 5 组；不联网、不新增数据源）
 - 📋 **题单**：**三种建法**（题库勾选 / 粘贴题号识别 / 按知识点+难度生成），题单内记录完成状态、备注与复习进度
 - 🔁 **题单内间隔复习**：**1 / 3 / 7 / 14 / 30 / 60 天**阶梯，勾选完成自动进入第 1 档；「今日复习」跨题单汇总（逾期也算），反馈 **困难退一档 / 一般进一档 / 轻松跳一档**
@@ -28,7 +28,7 @@
 
 ## 快速开始
 
-1. 安装：运行 `dist\ACM-Trainer-1.21.0-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
+1. 安装：运行 `dist\ACM-Trainer-1.21.1-setup.exe`（或免安装版 `dist\win-unpacked\ACM-Trainer.exe`）；
 2. 首次进入「题库」页依次点 **同步题库**（Codeforces，1–3 分钟）、**同步洛谷**（3–5 分钟）、**同步力扣**（约 30–40 秒）；
 3. 用「知识点筛选」按知识点练题（v1.20 起筛选区只有知识点一个维度；想补题就在学习路径节点详情点「⊘ 排除已 AC」再跳题库）→ 点「记录」写练习记录（排序可选「按难度 / 按题号 / 按 AC 数」，默认方向自动切换）；
 4. 回「🏠 首页」看「**已练习标签**」（chip 显示 `已AC/题数`）与「**推荐习题**」两栏：已练习按遗忘曲线提醒该复习什么，未练习优先推「练习中」知识点的题；点标签 chip 可筛选，点条目直达题库（`?q=<题号>`）；
@@ -47,13 +47,13 @@
 | `npm run dev` | 开发模式启动应用 |
 | `npm run build` | 构建 main/preload/renderer 到 out/ |
 | `npm run build:win` | 构建并打包 Windows 安装包到 dist/ |
-| `npm test` | 运行全部单元/集成/渲染测试（vitest，**582 例 / 55 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
-| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.21.0 为 **0 错误**） |
+| `npm test` | 运行全部单元/集成/渲染测试（vitest，**591 例 / 56 文件**；PowerShell 下用 `npm.cmd test`，或 `node node_modules/vitest/vitest.mjs run`） |
+| `npm run typecheck` | TypeScript 类型检查（`tsc` + `vue-tsc`，v1.21.1 为 **0 错误**） |
 | `npm run verify:gui` | GUI 特性验收（playwright 驱动真实应用，**142/142 通过**：142 项断言 + 截图；v1.20.0 为 131/131、v1.19.0 为 119 项、v1.18.0 为 112 项、v1.17.0 为 110 项、v1.16.0 为 105 项） |
 | `npm run verify:smoke` | GUI 端到端冒烟（**33 项**断言 + 截图） |
 | `npm run verify:lc` | 真实力扣同步验收（**联网**调用 leetcode.cn，约 30–40 秒，12 项断言） |
 | `npm run verify:perf` | **性能自查（v1.14.1 新增）**：用 `backup()` 复制真实库到临时目录，以 `ACM_USER_DATA` 指向副本启动，端到端测冷启动 / 首页统计卡片 / 首页推荐区 / 页面切换 / 4 个关键 IPC；**只读副本、不写真实库**，测完清理临时目录（参考值见 [docs/06](docs/06-用户验收指引.md) §17） |
-| `npm run verify:asar` | **安装包自检（v1.20.0 新增）**：解出 asar 后与 `out/` 逐文件 sha256 比对、校验 asar 内版本号、抽查新功能关键串（v1.21.0 起关键串 16 条，发版 SOP 见 [docs/11](docs/11-发布操作手册.md)） |
+| `npm run verify:asar` | **安装包自检（v1.20.0 新增）**：解出 asar 后与 `out/` 逐文件 sha256 比对、校验 asar 内版本号、抽查新功能关键串（v1.21.1 起关键串 18 条，发版 SOP 见 [docs/11](docs/11-发布操作手册.md)） |
 | `npm run docs:shots` | 重新生成使用手册配图（docs/images/，**26 张**；只覆盖脚本自己负责的图，不整目录删除——目录内另有 9 张人工补拍的验收/补充截图，合计 **35 张**；v1.20 起题库页配图已改为知识点筛选版 `02-problems-knowledge.png` / `03-knowledge-filtered.png`） |
 | `npm run docs:stl` | 从数据生成 docs/10-STL参考.md |
 
@@ -82,7 +82,7 @@ src/
 ├── preload/       contextBridge 白名单桥接（window.api）
 ├── shared/        跨进程类型、IPC 通道常量、技能树图谱（70 节点 + 5 个国内比赛赛道）、标签分类与中英标签映射（tag-map）
 └── renderer/      Vue 3 应用（11 个页面 + Pinia stores + 组件；首页推荐习题与已练习标签、技能树标签手动选取、v1.20 起题库页 / 虚拟比赛页共用 `KnowledgePicker` 知识点选择器）
-tests/             单元 / 集成 / 渲染组件测试（vitest，55 个文件 / 582 用例）
+tests/             单元 / 集成 / 渲染组件测试（vitest，56 个文件 / 591 用例）
 tools/             GUI 自动化验收（gui-verify / gui-smoke / gui-lc-sync / gui-perf）、安装包自检（**asar-check**）与手册配图脚本（playwright-core）
 docs/              SDD 文档 00–08 + 使用手册 09 + STL 参考 10 + 发布操作手册 11（含 images/ 截图 35 张）
 backup/            旧版项目归档
@@ -98,6 +98,16 @@ backup/            旧版项目归档
 
 ## 版本说明
 
+### v1.21.1
+本版是**缺陷修复版**：修正**多标签知识点的掌握度判定虚高**。v1.20 给 22 个知识点补入概念标签后，部分节点关联 5–7 个标签，而掌握度按「命中任一标签」并集统计 + 绝对阈值判定 —— 只刷其中一个标签就能把整个知识点判成「基本掌握 / 熟练」。本版给判定加**广度门槛**，**不裁剪任何标签**（FR-41 的概念标签与题库知识点筛选全部保留）。**无新增数据表、0 个新 IPC、0 个设置项**，覆盖安装即可。
+
+- **广度门槛**：节点内「练出 AC 的标签数」覆盖「可练标签数」的 **60%** 才允许基本掌握、**80%** 才允许熟练；只刷一个标签最多「练习中」。可练标签 = 本地题库里**有题**的关联标签（综合节点 / 无题节点不做广度判定），单标签节点行为不变。节点资料卡新增「**标签覆盖 x/y**」指标，悬停说明 60% / 80% 规则。
+- **真实数据实测影响**：本地库 32,256 题 / 515 个标签，改前 70 个节点档位为 proficient 18 / learning 9 / newbie 12 / untouched 30 / master 1；「字符串与 KMP」5 个标签里只有 1 个标签有 AC（14 道）却显示熟练、「容器与 STL 应用」7 个标签只覆盖 5 个就显示熟练，「图论进阶」「模拟与实现」「排序」「暴力与剪枝」等同样虚高。修复后预期约 6 个节点档位下调（「数学基础」覆盖 3/5 = 60% 保留基本掌握、「质数判定」4/4 不变）。
+- **实现要点**：`ProblemsRepo.tagTotals()` 提供「有题标签」分母；`classifyTier()` = `min(aggregateTier(s), 广度档位)`，原阈值逻辑抽成导出的 `aggregateTier()` 保持可测；`NodePracticeStats` 增加 `tagTotal` / `coveredTags` 两个字段；`tests/integration/skill-breadth.test.ts` 用真实内存 sqlite 验证分母 / 分子 / 档位。
+
+测试 **591/591（56 文件）**、`verify:gui` **142/142**、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增 9 例（`tests/integration/skill-breadth.test.ts` 3、`tests/unit/skill.test.ts` +5、`tests/renderer/skill-tree-page.test.ts` +1），6 个渲染测试夹具补 `tagTotal` / `coveredTags` 默认值；配图维持 **35 张**（本版无新截图）；安装包 `dist\ACM-Trainer-1.21.1-setup.exe` **89.80MB**，`npm run verify:asar` 四项全 PASS（asar ↔ `out/` 6/6 一致、asar 内 version=1.21.1、18 个关键串全部命中）。
+对应缺陷修复 **FR-45**（掌握度广度门槛）（[docs/01-需求规格说明书.md](docs/01-需求规格说明书.md)）、设计 [docs/03-详细设计.md](docs/03-详细设计.md) §33。
+详见 [docs/08-发布说明.md](docs/08-发布说明.md) §28；掌握度口径见 [docs/09-使用手册.md](docs/09-使用手册.md)「掌握度口径」。
 ### v1.21.0
 本版加两个与「按比赛 / 按题单刷题」相关的能力：**蓝桥杯 / CCPC 往届比赛题单一键生成**（按年份 + 地区 / 组别选择，地区随年份联动）和**学习路径「仅显示题单知识点」过滤**（选一份题单，只看它覆盖到的知识点）。**无新增数据表、0 个设置项、0 个新数据源**：新增 3 个 IPC 通道（`lists:archiveCatalog` / `lists:createArchive` / `skill:listCoverage`）、1 个纯函数模块（`src/shared/contest-archive.ts`）与 1 个覆盖计算函数（`coveredNodeIds`）；`ListOrigin` 增加 `'archive'`（`problem_lists.origin` 无 CHECK 约束，**旧库无需迁移**），覆盖安装即可。
 
@@ -106,7 +116,7 @@ backup/            旧版项目归档
 - **学习路径过滤**：赛道面板下方新增「题单知识点：」一行 —— 下拉选题单（显示「名称（N 题）」）+「仅显示题单知识点」勾选框；**选完题单立刻显示覆盖统计**（「共 N 题，覆盖 M 个知识点」，不用先勾选），勾选后树上只保留覆盖节点、**空层自动隐藏**、**连线只保留两端都可见的边并重排**，取消勾选立即恢复全部 70 个节点。覆盖算法先做中英文 / 别名归一（`greedy` = 贪心），节点**任一标签命中**即算覆盖；与赛道过滤是「且」关系，只影响显示，**掌握度 / 赛道进度 / 复习计数都不变**。
 - **实现期修掉的 5 个缺陷**：题单页入口原先只在「已打开题单」时渲染 → 改为左侧面板常驻；`gui-verify` 的 `.only-track` 选择器与「只显示赛道节点」strict mode 冲突 → 限定 `.track-panel:not(.list-panel)`；地区下拉文案曾渲染成「全部全部组别」；`contest-archive.ts` 里 `??` 与 `||` 混用触发 TS5076；jsdom 的 `getComputedStyle` 会缓存 v-show 的 `display` → 渲染测试改用内联 `style.display !== 'none'` 判定。
 
-测试 **582/582（55 文件）**、`verify:gui` **142/142**（新增 10 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增 5 个测试文件共 30 例（`tests/unit/contest-archive.test.ts` 10、`tests/unit/skill-tree-coverage.test.ts` 5、`tests/integration/lists-archive.test.ts` 5、`tests/renderer/lists-archive.test.ts` 6、`tests/renderer/skill-tree-list-filter.test.ts` 4）；新增截图 `18-archive-list.png`、`11c-skill-tree-list.png`，配图合计 **35 张**；安装包 `dist\ACM-Trainer-1.21.0-setup.exe` **89.80MB**，`npm run verify:asar` 四项全 PASS（asar ↔ `out/` 6/6 一致、asar 内 version=1.21.0、16 个关键串全部命中）。
+测试 **582/582（55 文件）**、`verify:gui` **142/142**（新增 10 项）、`verify:smoke` **33/33**、`tsc` + `vue-tsc` **0 错误**；新增 5 个测试文件共 30 例（`tests/unit/contest-archive.test.ts` 10、`tests/unit/skill-tree-coverage.test.ts` 5、`tests/integration/lists-archive.test.ts` 5、`tests/renderer/lists-archive.test.ts` 6、`tests/renderer/skill-tree-list-filter.test.ts` 4）；新增截图 `18-archive-list.png`、`11c-skill-tree-list.png`，配图合计 **35 张**；安装包 `dist\ACM-Trainer-1.21.1-setup.exe` **89.80MB**，`npm run verify:asar` 四项全 PASS（asar ↔ `out/` 6/6 一致、asar 内 version=1.21.0、16 个关键串全部命中）。
 对应需求 **FR-43**（往届比赛题单）+ **FR-44**（学习路径仅显示题单知识点）（[docs/01-需求规格说明书.md](docs/01-需求规格说明书.md)）、设计 [docs/03-详细设计.md](docs/03-详细设计.md) §32。
 详见 [docs/08-发布说明.md](docs/08-发布说明.md) §27。使用说明见 [docs/09-使用手册.md](docs/09-使用手册.md) §29 / §30；发版流程见 [docs/11-发布操作手册.md](docs/11-发布操作手册.md)。
 

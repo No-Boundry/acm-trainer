@@ -22,7 +22,7 @@ function nodeOf(id: string, tier: MasteryTier = 'untouched'): SkillNodeReport {
     tags: [...n.tags],
     dependsOn: [...n.dependsOn],
     intro: n.intro,
-    stats: { attempted: 0, acProblems: 0, attempts: 0, acAttempts: 0, acc: null, hardSolved: 0, lastActiveDays: null },
+    stats: { attempted: 0, acProblems: 0, attempts: 0, acAttempts: 0, acc: null, hardSolved: 0, lastActiveDays: null, tagTotal: 1, coveredTags: 1 },
     tier,
     depsReady: n.dependsOn.length === 0
   }

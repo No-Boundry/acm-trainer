@@ -27,7 +27,9 @@ function node(partial: Partial<SkillNodeReport> & { id: string; name: string }):
       acAttempts: 2,
       acc: 0.5,
       hardSolved: 0,
-      lastActiveDays: 2
+      lastActiveDays: 2,
+      tagTotal: 1,
+      coveredTags: 1
     },
     tier: 'learning',
     depsReady: true,

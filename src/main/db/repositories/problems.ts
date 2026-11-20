@@ -515,6 +515,24 @@ export class ProblemsRepo {
     }))
   }
 
+  /**
+   * v1.21.1：每个标签在本题库里的题数（小写标签 → 题数）。
+   * 只返回「至少有一道题」的标签：掌握度广度门槛用它当分母，
+   * 避免把本地题库里根本没有题、永远练不到的标签算进分母。
+   */
+  tagTotals(): Map<string, number> {
+    const rows = this.db
+      .prepare(
+        `SELECT t.name AS tag, COUNT(DISTINCT p.id) AS total
+           FROM tags t
+           JOIN problem_tags pt ON pt.tag_id = t.id
+           JOIN problems p ON p.id = pt.problem_id
+          GROUP BY t.id`
+      )
+      .all() as { tag: string; total: number }[]
+    return new Map(rows.map((r) => [r.tag.toLowerCase(), r.total]))
+  }
+
   count(source?: ProblemSource): number {
     if (source) {
       return (

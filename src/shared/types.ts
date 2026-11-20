@@ -196,6 +196,13 @@ export interface NodePracticeStats {
   hardSolved: number
   /** 最近练习距今天数（无则 null） */
   lastActiveDays: number | null
+  /**
+   * v1.21.1：节点关联标签总数（canonical 去重后、且本地题库里有题的标签；
+   * 0 = 综合节点或题库尚无该知识点的题 → 不做广度判定）。
+   */
+  tagTotal: number
+  /** v1.21.1：已有至少 1 道 AC 的标签数（掌握广度；只统计可题目标签）。 */
+  coveredTags: number
 }
 
 /**

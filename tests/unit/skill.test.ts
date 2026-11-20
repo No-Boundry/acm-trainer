@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifyTier, nodeAvailability, buildSkillReport } from '../../src/main/services/skill'
+import { aggregateTier, classifyTier, nodeAvailability, buildSkillReport } from '../../src/main/services/skill'
 import { SKILL_NODES } from '@shared/skill-tree'
 import type { Repos } from '../../src/main/services'
 import type { NodePracticeStats } from '@shared/types'
@@ -12,6 +12,9 @@ const s = (partial: Partial<NodePracticeStats>): NodePracticeStats => ({
   acc: null,
   hardSolved: 0,
   lastActiveDays: null,
+  // 默认单标签节点：不做广度约束，保持既有档位用例口径
+  tagTotal: 1,
+  coveredTags: 1,
   ...partial
 })
 
@@ -46,6 +49,41 @@ describe('classifyTier（v1.6 FR-9.2 五档）', () => {
   })
 })
 
+describe('classifyTier 广度门槛（v1.21.1 FR-45）', () => {
+  // 聚合阈值本身已达标（AC 9 / 正确率 0.71 → proficient），但 5 个标签只覆盖 1 个
+  const proficientish = { attempted: 10, acProblems: 9, attempts: 14, acAttempts: 10, acc: 0.71 }
+
+  it('多标签节点只练了少数标签时，档位被广度压低', () => {
+    const stats = s({ ...proficientish, tagTotal: 5, coveredTags: 1 })
+    expect(aggregateTier(stats)).toBe('proficient')
+    expect(classifyTier(stats)).toBe('learning')
+  })
+
+  it('基本掌握需覆盖 60%，熟练需覆盖 80%（向上取整）', () => {
+    const masterish = { attempted: 20, acProblems: 16, attempts: 24, acAttempts: 17, acc: 0.8, hardSolved: 1 }
+    expect(aggregateTier(s({ ...masterish }))).toBe('master')
+    // 5 个标签 → 60% = 3，80% = 4
+    expect(classifyTier(s({ ...masterish, tagTotal: 5, coveredTags: 2 }))).toBe('learning')
+    expect(classifyTier(s({ ...masterish, tagTotal: 5, coveredTags: 3 }))).toBe('proficient')
+    expect(classifyTier(s({ ...masterish, tagTotal: 5, coveredTags: 4 }))).toBe('master')
+  })
+
+  it('单标签节点不做广度约束（total ≤ 1）', () => {
+    const stats = s({ ...proficientish, tagTotal: 1, coveredTags: 1 })
+    expect(classifyTier(stats)).toBe('proficient')
+  })
+
+  it('综合节点 / 本地无题（tagTotal = 0）不做广度约束', () => {
+    const stats = s({ ...proficientish, tagTotal: 0, coveredTags: 0 })
+    expect(classifyTier(stats)).toBe('proficient')
+  })
+
+  it('一个标签都没 AC 时不会超过 newbie', () => {
+    const stats = s({ attempted: 6, acProblems: 4, attempts: 6, acAttempts: 4, acc: 0.67, tagTotal: 3, coveredTags: 0 })
+    expect(classifyTier(stats)).toBe('newbie')
+  })
+})
+
 describe('nodeAvailability（FR-9.3 依赖达标）', () => {
   it('全部前置 proficient/master → 可学', () => {
     expect(nodeAvailability(['proficient'])).toBe(true)
@@ -63,7 +101,7 @@ describe('buildSkillReport 组装（FR-9.2/9.3 + v1.7 FR-11 intro 透传）', ()
   const emptyRepos = (): Repos =>
     ({
       records: { list: () => ({ items: [], total: 0 }), all: () => [] },
-      problems: { getById: () => null }
+      problems: { getById: () => null, tagTotals: () => new Map() }
     }) as unknown as Repos
 
   it('空数据：44 节点全 untouched、intro 与图谱一致、推荐 = L0 五节点', () => {

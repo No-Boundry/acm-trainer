@@ -21,6 +21,8 @@ function makeStats(over: Partial<SkillNodeReport['stats']> = {}): SkillNodeRepor
     acc: null,
     hardSolved: 0,
     lastActiveDays: null,
+    tagTotal: 1,
+    coveredTags: 1,
     ...over
   }
 }
@@ -227,6 +229,40 @@ describe('SkillTreePage 技能树页面', () => {
     // v1.8：资料卡移除推荐练习题单
     expect(detail.find('.rec-problems').exists()).toBe(false)
     expect(detail.text()).not.toContain('推荐练习')
+    wrapper.unmount()
+  })
+
+  it('资料卡显示「标签覆盖」：有题节点 x/y，综合节点显示 —（v1.21.1 FR-45）', async () => {
+    const report = buildReport()
+    // sort：2 个可练标签、只覆盖 1 个
+    report.nodes[0].stats = makeStats({
+      attempted: 3,
+      acProblems: 2,
+      attempts: 5,
+      acAttempts: 3,
+      acc: 0.6,
+      hardSolved: 1,
+      lastActiveDays: 2,
+      tagTotal: 2,
+      coveredTags: 1
+    })
+    // dp：本地无题（tagTotal 0）→ 不做广度判定，界面显示 —
+    report.nodes[2].stats = makeStats({ tagTotal: 0, coveredTags: 0 })
+    const { wrapper } = await mountPage(report)
+
+    const coverOf = () =>
+      wrapper
+        .find('.detail')
+        .findAll('.stat')
+        .find((s) => s.text().includes('标签覆盖'))!
+
+    await wrapper.find('[data-node="sort"]').trigger('click')
+    await flushPromises()
+    expect(coverOf().find('b').text()).toBe('1/2')
+
+    await wrapper.find('[data-node="dp"]').trigger('click')
+    await flushPromises()
+    expect(coverOf().find('b').text()).toBe('—')
     wrapper.unmount()
   })
 

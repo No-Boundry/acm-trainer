@@ -43,7 +43,10 @@ const NEEDLES = [
   'skill:listCoverage',
   'archiveCandidates',
   '往届比赛题单',
-  '仅显示题单知识点'
+  '仅显示题单知识点',
+  // v1.21.1 掌握度广度门槛（FR-45）
+  '标签覆盖',
+  '掌握度广度'
 ]
 
 let failed = 0
